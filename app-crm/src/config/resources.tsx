@@ -57,16 +57,16 @@ export const resources: IResourceItem[] = [
             hide: true,
         },
     },
-    {
-        name: "deals",
-        list: "/scrumboard/sales",
-        create: "/scrumboard/sales/create",
-        edit: "/scrumboard/sales/edit/:id",
-        meta: {
-            label: "Sales Pipeline",
-            parent: "scrumboard",
-        },
-    },
+    // {
+    //     name: "deals",
+    //     list: "/scrumboard/sales",
+    //     create: "/scrumboard/sales/create",
+    //     edit: "/scrumboard/sales/edit/:id",
+    //     meta: {
+    //         label: "Sales Pipeline",
+    //         parent: "scrumboard",
+    //     },
+    // },
     {
         name: "dealStages",
         create: "/scrumboard/sales/stages/create",
@@ -126,27 +126,27 @@ export const resources: IResourceItem[] = [
     //         icon: <ContainerOutlined />,
     //     },
     // },
-    {
-        name: "administration",
-        meta: {
-            label: "Administration",
-            icon: <CrownOutlined />,
-        },
-    },
-    {
-        name: "settings",
-        list: "/administration/settings",
-        meta: {
-            label: "Settings",
-            parent: "administration",
-        },
-    },
-    {
-        name: "audits",
-        list: "/administration/audit-log",
-        meta: {
-            label: "Audit Log",
-            parent: "administration",
-        },
-    },
+    // {
+    //     name: "administration",
+    //     meta: {
+    //         label: "Administration",
+    //         icon: <CrownOutlined />,
+    //     },
+    // },
+    // {
+    //     name: "settings",
+    //     list: "/administration/settings",
+    //     meta: {
+    //         label: "Settings",
+    //         parent: "administration",
+    //     },
+    // },
+    // {
+    //     name: "audits",
+    //     list: "/administration/audit-log",
+    //     meta: {
+    //         label: "Audit Log",
+    //         parent: "administration",
+    //     },
+    // },
 ];

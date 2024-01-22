@@ -21,10 +21,10 @@ export const DashboardDealsChart: React.FC<{ selectedKeyword: string,chartTitle:
     useEffect(() => {
         const fetchData = async () => {
             const startDate = new Date('2023-10-01').toISOString().split('T')[0];
-            const endDate = new Date('2023-12-28').toISOString().split('T')[0];
+            const endDate = new Date('2023-12-31').toISOString().split('T')[0];
             try {
                 const keyword = selectedKeyword ; // Replace 'DefaultKeyword' with a default value
-                const response = await axios.get(`http://localhost:8080/api/news/counts?index=cnn_articles_newone&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}`);
+                const response = await axios.get(`${apiUrl}api/news/counts?index=cnn_articles_newone&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}`);
                 const transformedData = Object.entries(response.data)
                     .map(([date, value]) => ({ timeText: date, value: Number(value) }))
                     .sort((a, b) => new Date(a.timeText).getTime() - new Date(b.timeText).getTime());

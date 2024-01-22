@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
  * We use this hook to skip the login page and demonstrate the application more quickly.
  */
 export const useAutoLoginForDemo = () => {
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const login = useCallback(async () => {
         const email = localStorage.getItem("auto_login") || emails[0];

@@ -91,7 +91,7 @@ const App: React.FC = () => {
                     <AntdApp>
                         <DevtoolsProvider>
                             <Refine
-                                authProvider={authProvider}
+                                // authProvider={authProvider}
                                 dataProvider={dataProvider}
                                 liveProvider={liveProvider}
                                 routerProvider={routerProvider}
@@ -349,7 +349,7 @@ const App: React.FC = () => {
                                             </Authenticated>
                                         }
                                     >
-                                        <Route
+                                        {/* <Route
                                             path="/login"
                                             element={<LoginPage />}
                                         />
@@ -364,7 +364,7 @@ const App: React.FC = () => {
                                         <Route
                                             path="/update-password"
                                             element={<UpdatePasswordPage />}
-                                        />
+                                        /> */}
                                     </Route>
                                 </Routes>
                                 <UnsavedChangesNotifier />

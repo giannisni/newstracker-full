@@ -1,32 +1,71 @@
 package com.getout.service;
 
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
+//import co.elastic.clients.elasticsearch.ElasticsearchClient;
+//import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
+//import co.elastic.clients.elasticsearch.core.search.Hit;
+//import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
+//import org.apache.http.HttpHost;
+//import org.apache.http.auth.AuthScope;
+//import org.apache.http.auth.UsernamePasswordCredentials;
+//import org.apache.http.client.CredentialsProvider;
+//import org.apache.http.impl.client.BasicCredentialsProvider;
+//import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+//import org.elasticsearch.action.search.SearchRequest;
+//import org.elasticsearch.action.search.SearchResponse;
+//import org.elasticsearch.client.RequestOptions;
+//import org.elasticsearch.client.RestClient;
+//import org.elasticsearch.client.RestClientBuilder;
+//import org.elasticsearch.client.RestHighLevelClient;
+//import org.elasticsearch.index.query.BoolQueryBuilder;
+//import org.elasticsearch.index.query.MatchQueryBuilder;
+//import org.elasticsearch.index.query.QueryBuilders;
+//import org.elasticsearch.index.query.SpanNearQueryBuilder;
+//import org.elasticsearch.search.SearchHit;
+//import org.elasticsearch.search.builder.SearchSourceBuilder;
+//import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+//import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
+//import org.elasticsearch.search.sort.SortOrder;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Service;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
+import co.elastic.clients.elasticsearch.core.CountResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+import co.elastic.clients.json.JsonData;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.getout.model.Document;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.SpanNearQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
-import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,142 +74,65 @@ import static com.getout.util.Constants.*;
 @Service
 public class KeywordFrequencyService {
 
+
+    private final ElasticsearchClient elasticsearchClient;
+
+    @Autowired
+    public KeywordFrequencyService(ElasticsearchClient elasticsearchClient) {
+        this.elasticsearchClient = elasticsearchClient;
+    }
     /**
      * Retrieves keyword counts from Elasticsearch for a given keyword and date range.
      *
-     * @param keyword    The keyword to search for.
-     * @param startDate  The start date of the range.
-     * @param endDate    The end date of the range.
+//     * @param keyword    The keyword to search for.
+//     * @param startDate  The start date of the range.
+//     * @param endDate    The end date of the range.
      * @return A map of dates to keyword counts.
      * @throws IOException If there's an issue communicating with Elasticsearch.
      */
 
 
 
-
-    public String elasticHost = "localhost";
-    public static Map<LocalDate, Integer> getKeywordCounts(String index,String keyword, LocalDate startDate, LocalDate endDate) throws IOException {
-
-
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
+    public List<Map<String, Object>> getWordCloudData(String indexName) throws IOException {
+        // Create search request
+        SearchRequest searchRequest = SearchRequest.of(s -> s
+                .index(indexName)
+                .query(q -> q
+                        .matchAll(new MatchAllQuery.Builder().build())
+                )
+                .size(10000) // Adjust the size as needed
         );
-
-        //List<String> keywords = Arrays.asList("Μητσοτάκης", "Τσίπρας", "Βαρουφάκης", "Κουτσούμπας","Ανδρουλάκης","Kασιδιάρης","ΣΥΡΙΖΑ","Ουκρανία","Νάτο","Πόλεμος στην Ουκρανία","Ρωσία","Πούτιν");
-
-        Map<String, List<String>> topics = new HashMap<>();
-        topics.put("τέμπη", Arrays.asList("Hellenic Train","έγκλημα στα Τέμπη","τηλεδιοίκηση","Καραμανλής","φωτεινή σηματοδότηση","σιδηροδρομικό","ΤΡΑΙΝΟΣΕ","ΟΣΕ","τραγωδία στα Τέμπη","Σταθμάρχη","σύγκρουση των δύο τρένων","57 ανθρώπους"));
-        topics.put("ουκρανικό", Arrays.asList("Ουκρανία","Νάτο","Πόλεμος στην Ουκρανία","Ρωσία","Πούτιν"));
-        //topics.put("πυρήνικά", Arrays.asList(""));
-
-        // Add more topics and keywords as needed
-
-
-        List<String> keywords = topics.get(keyword);
-
-//        System.out.println("keywords: " + keyword);
-//        System.out.println("Date: " + startDate);
-//        System.out.println("Date: " + endDate);
-//        System.out.println("Index: " + index);
-
-
-
-        Map<LocalDate, Integer> keywordCounts = new HashMap<>();
-
-        if (keywords != null) {
-            //List<String> keywords = topics.get(topicKey);
-
-            for (String key : keywords) {
-                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("keyword.keyword", key))
-                        .must(QueryBuilders.termQuery("index.keyword", index))
-                        .must(QueryBuilders.rangeQuery("date").gte(startDate).lte(endDate));
-
-                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                searchSourceBuilder.query(boolQuery);
-                searchSourceBuilder.sort("date", SortOrder.ASC).size(10000);
-
-                SearchRequest searchRequest = new SearchRequest("cnn_articles_newone_counts");
-                searchRequest.source(searchSourceBuilder);
-
-                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-                searchResponse.getHits().forEach(hit -> {
-                    Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                    LocalDate date = LocalDate.parse((String) sourceAsMap.get("date"));
-                    Integer value = (Integer) sourceAsMap.get("value");
-                    keywordCounts.put(date, keywordCounts.getOrDefault(date, 0) + value);
-                });
-            }
-        } else {
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                    .must(QueryBuilders.termQuery("keyword.keyword", keyword))
-                    .must(QueryBuilders.termQuery("index.keyword", index))
-                    .must(QueryBuilders.rangeQuery("date").gte(startDate).lte(endDate));
-
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(boolQuery);
-            searchSourceBuilder.sort("date", SortOrder.ASC).size(10000);
-
-            SearchRequest searchRequest = new SearchRequest("cnn_articles_newone_counts");
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-//            System.out.println("Response" + searchResponse);
-
-            searchResponse.getHits().forEach(hit -> {
-                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                LocalDate date = LocalDate.parse((String) sourceAsMap.get("date"));
-                Integer value = (Integer) sourceAsMap.get("value");
-                keywordCounts.put(date, value);
-            });
-        }
-//        System.out.println("keywordCounts" + keywordCounts);
-        return keywordCounts;
-    }
-
-
-    public List<OpenAIData> fetchOpenAIData(String indexName) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-
-        // Define the search query
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.size(1000);  // Adjust size as needed
-
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchRequest.source(searchSourceBuilder);
 
         // Execute the search
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse<Object> searchResponse = elasticsearchClient.search(searchRequest, Object.class);
+
+        // Process the search hits
+        List<Map<String, Object>> wordCloudData = new ArrayList<>();
+        for (Hit<Object> hit : searchResponse.hits().hits()) {
+            Map<String, Object> sourceAsMap = (Map<String, Object>) hit.source();
+            String keyword = (String) sourceAsMap.get("keyword");
+            Double frequency = (Double) sourceAsMap.get("frequency");
+            wordCloudData.add(Map.of("text", keyword, "value", frequency));
+        }
+
+        return wordCloudData;
+    }
+
+    public List<OpenAIData> fetchOpenAIData(String indexName) throws IOException {
+        // Define the search query
+        SearchResponse<Map> searchResponse = elasticsearchClient.search(s -> s
+                        .index(indexName)
+                        .size(1000) // Adjust size as needed
+                        .query(q -> q
+                                .matchAll(m -> m)
+                        ),
+                Map.class
+        );
 
         // Process the search hits
         List<OpenAIData> openAIDataList = new ArrayList<>();
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+        for (Hit<Map> hit : searchResponse.hits().hits()) {
+            Map<String, Object> sourceAsMap = hit.source();
             Object openAIObject = sourceAsMap.get("OpenAI");
 
             String openAIString = "";
@@ -185,8 +147,6 @@ public class KeywordFrequencyService {
             Integer count = (Integer) sourceAsMap.get("Count");
             openAIDataList.add(new OpenAIData(openAIString, count));
         }
-
-        client.close();
 
         return openAIDataList;
     }
@@ -214,137 +174,144 @@ public class KeywordFrequencyService {
         // Optionally, you can add setter methods if you need them
     }
 
-    public static List<DocumentData> fetchDocumentsByTopic(LocalDate startDate, LocalDate endDate, int topicId, String index) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
 
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
+    public String elasticHost = "localhost";
+
+
+
+    public Map<LocalDate, Integer> getKeywordCounts(String index, String keyword, LocalDate startDate, LocalDate endDate) throws IOException {
+        Map<LocalDate, Integer> keywordCounts = new HashMap<>();
+
+//        System.out.println("Start Date"+ startDate.toString());
+
+        // Build the request
+        SearchRequest searchRequest = SearchRequest.of(s -> s
+                .index("cnn_articles_newone_counts")
+                .query(q -> q
+                        .bool(b -> b
+                                .must(m -> m
+                                        .term(t -> t
+                                                .field("keyword.keyword")
+                                                .value(keyword)
+                                        )
+                                )
+                                .filter(f -> f
+                                        .range(r -> r
+                                                .field("date")
+                                                .gte(JsonData.of(startDate.toString())) // Keep using JsonData.of() with LocalDate.toString()
+                                                .lte(JsonData.of(endDate.toString()))
+                                        )
+                                )
+                        )
+                )
+                .size(10000) // Adjust size as needed
         );
-        List<DocumentData> documents = new ArrayList<>();
-
-        // Constructing Bool Query for specific topic
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-        boolQuery.must(QueryBuilders.termQuery("topic", topicId))
-                .must(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate));
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(boolQuery);
-        searchSourceBuilder.size(10000); // Adjust size as needed
-
-        SearchRequest searchRequest = new SearchRequest(index);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            String title = (String) sourceAsMap.get("title");
-            String date = (String) sourceAsMap.get("published_date");
-            String url = (String) sourceAsMap.get("url");
-
-            documents.add(new DocumentData(title, date, url)); // Storing each document's data
-        }
-
-        client.close();
-        return documents;
-    }
-
-
-    public static List<Map<String, Object>> getWordCloudData(String indexName) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchSourceBuilder.size(10000); // Fetch a large number of documents
-
-        searchRequest.source(searchSourceBuilder);
 
         // Execute the search
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse<Map> response = elasticsearchClient.search(searchRequest, Map.class);
 
-        // Process the search hits
-        List<Map<String, Object>> wordCloudData = new ArrayList<>();
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            String keyword = (String) sourceAsMap.get("keyword");
-            Double frequency = (Double) sourceAsMap.get("frequency");
-            wordCloudData.add(Map.of("text", keyword, "value", frequency));
+//        System.out.println("response " + response);
+        // Process the results
+        for (Hit<Map> hit : response.hits().hits()) {
+            Map<String, Object> source = hit.source();
+            LocalDate date = LocalDate.parse((String) source.get("date"));
+            Integer value = (Integer) source.get("value");
+            keywordCounts.put(date, value);
         }
-//        System.out.println("Map: " + wordCloudData);
 
         // Close the client
-        client.close();
 
-        return wordCloudData;
-    }
+        return keywordCounts;
+    }//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//        credentialsProvider.setCredentials(AuthScope.ANY,
+//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
+//
+//        RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
+//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+//                            @Override
+//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+//                            }
+//                        })
+//        );
+//        List<DocumentData> documents = new ArrayList<>();
+//
+//        // Constructing Bool Query for specific topic
+//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+//        boolQuery.must(QueryBuilders.termQuery("topic", topicId))
+//                .must(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate));
+//
+//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+//        searchSourceBuilder.query(boolQuery);
+//        searchSourceBuilder.size(10000); // Adjust size as needed
+//
+//        SearchRequest searchRequest = new SearchRequest(index);
+//        searchRequest.source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//        for (SearchHit hit : searchResponse.getHits().getHits()) {
+//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+//            String title = (String) sourceAsMap.get("title");
+//            String date = (String) sourceAsMap.get("published_date");
+//            String url = (String) sourceAsMap.get("url");
+//
+//            documents.add(new DocumentData(title, date, url)); // Storing each document's data
+//        }
+//
+//        client.close();
+//        return documents;
+//    }
+//
 
-    public static Map<String, Integer> fetchWordFrequenciesFromTopicNew(LocalDate startDate, LocalDate endDate) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-        Map<String, Integer> wordFrequencies = new HashMap<>();
-
-        // Create a query to fetch documents based on date range
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.rangeQuery("date_published").gte(startDate).lte(endDate));
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(boolQuery);
-        searchSourceBuilder.size(10000);  // Adjust size as needed
-
-        SearchRequest searchRequest = new SearchRequest("article-index4");
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-
-
-        searchResponse.getHits().forEach(hit -> {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            Object topicnewField = sourceAsMap.get("topicnew");
-            if (topicnewField instanceof String) {
-                String category = (String) topicnewField;
-                wordFrequencies.put(category, wordFrequencies.getOrDefault(category, 0) + 1);
-            } else {
-                // Log a warning or handle the case where topicnew is not a string
-                System.out.println("Warning: topicnew is not a string in document " + hit.getId());
-            }
-        });
-
-
-
-        return wordFrequencies;
-    }
+//    public static Map<String, Integer> fetchWordFrequenciesFromTopicNew(LocalDate startDate, LocalDate endDate) throws IOException {
+//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//        credentialsProvider.setCredentials(AuthScope.ANY,
+//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
+//
+//        RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
+//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+//                            @Override
+//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+//                            }
+//                        })
+//        );
+//        Map<String, Integer> wordFrequencies = new HashMap<>();
+//
+//        // Create a query to fetch documents based on date range
+//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+//                .must(QueryBuilders.rangeQuery("date_published").gte(startDate).lte(endDate));
+//
+//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+//        searchSourceBuilder.query(boolQuery);
+//        searchSourceBuilder.size(10000);  // Adjust size as needed
+//
+//        SearchRequest searchRequest = new SearchRequest("article-index4");
+//        searchRequest.source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//
+//
+//        searchResponse.getHits().forEach(hit -> {
+//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+//            Object topicnewField = sourceAsMap.get("topicnew");
+//            if (topicnewField instanceof String) {
+//                String category = (String) topicnewField;
+//                wordFrequencies.put(category, wordFrequencies.getOrDefault(category, 0) + 1);
+//            } else {
+//                // Log a warning or handle the case where topicnew is not a string
+//                System.out.println("Warning: topicnew is not a string in document " + hit.getId());
+//            }
+//        });
+//
+//
+//
+//        return wordFrequencies;
+//    }
 
 
     public static class DocumentData {
@@ -386,258 +353,352 @@ public class KeywordFrequencyService {
     }
 
 
-    public static List<DocumentData> fetchDocumentsWithWords(LocalDate startDate, LocalDate endDate,List<String> keywords, String index) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-        List<DocumentData> documents = new ArrayList<>();
-
-        // Constructing Bool Query for specific topic
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-        boolQuery.must(QueryBuilders.matchPhraseQuery("text", "Israel"))
-//                .must(QueryBuilders.matchPhraseQuery("text", "Palestine"))
-//                .should(QueryBuilders.matchPhraseQuery("text", "Gaza"))
-//                .should(QueryBuilders.matchPhraseQuery("text", "West Bank"))
-                .must(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate));
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(boolQuery);
-        searchSourceBuilder.size(10000); // Adjust size as needed
-
-        SearchRequest searchRequest = new SearchRequest(index);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            String title = (String) sourceAsMap.get("title");
-            String date = (String) sourceAsMap.get("published_date");
-            String url = (String) sourceAsMap.get("url");
-
-            documents.add(new DocumentData(title, date, url)); // Storing each document's data
-        }
-
-        client.close();
-        return documents;
-    }
-
+//    public static List<DocumentData> fetchDocumentsWithWords(LocalDate startDate, LocalDate endDate,List<String> keywords, String index) throws IOException {
+//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//        credentialsProvider.setCredentials(AuthScope.ANY,
+//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
+//
+//        RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
+//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+//                            @Override
+//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+//                            }
+//                        })
+//        );
+//        List<DocumentData> documents = new ArrayList<>();
+//
+//        // Constructing Bool Query for specific topic
+//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+//        boolQuery.must(QueryBuilders.matchPhraseQuery("text", "Israel"))
+////                .must(QueryBuilders.matchPhraseQuery("text", "Palestine"))
+////                .should(QueryBuilders.matchPhraseQuery("text", "Gaza"))
+////                .should(QueryBuilders.matchPhraseQuery("text", "West Bank"))
+//                .must(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate));
+//
+//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+//        searchSourceBuilder.query(boolQuery);
+//        searchSourceBuilder.size(10000); // Adjust size as needed
+//
+//        SearchRequest searchRequest = new SearchRequest(index);
+//        searchRequest.source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//        for (SearchHit hit : searchResponse.getHits().getHits()) {
+//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+//            String title = (String) sourceAsMap.get("title");
+//            String date = (String) sourceAsMap.get("published_date");
+//            String url = (String) sourceAsMap.get("url");
+//
+//            documents.add(new DocumentData(title, date, url)); // Storing each document's data
+//        }
+//
+//        client.close();
+//        return documents;
+//    }
+//
 
 
 
     // Modified Method to fetch keyword frequencies
-    public static Map<String, Integer> fetchKeywordFrequencies(LocalDate startDate, LocalDate endDate) throws IOException {
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        System.out.println(ELASTICSEARCH_USERNAME + ELASTICSEARCH_PASSWORD);
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-        Map<String, Integer> wordFrequencies = new HashMap<>();
-
-        // Create a query to fetch documents based on date range
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.rangeQuery("date_published").gte(startDate).lte(endDate));
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(boolQuery);
-        searchSourceBuilder.size(10000);  // Adjust size as needed
-
-        SearchRequest searchRequest = new SearchRequest("article-index4");
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-        searchResponse.getHits().forEach(hit -> {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            Object keywordsField = sourceAsMap.get("keywords");
-            if (keywordsField instanceof List) {
-                List<String> keywords = (List<String>) keywordsField;
-                for (String keyword : keywords) {
-                    wordFrequencies.put(keyword, wordFrequencies.getOrDefault(keyword, 0) + 1);
-                }
-            } else {
-                // Log a warning or handle the case where keywords is not a list
-                System.out.println("Warning: keywords is not a list in document " + hit.getId());
-            }
-        });
-
-        client.close();
-
-        return wordFrequencies;
-    }
+//    public static Map<String, Integer> fetchKeywordFrequencies(LocalDate startDate, LocalDate endDate) throws IOException {
+//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//        credentialsProvider.setCredentials(AuthScope.ANY,
+//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
+//
+//        System.out.println(ELASTICSEARCH_USERNAME + ELASTICSEARCH_PASSWORD);
+//        RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
+//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+//                            @Override
+//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+//                            }
+//                        })
+//        );
+//        Map<String, Integer> wordFrequencies = new HashMap<>();
+//
+//        // Create a query to fetch documents based on date range
+//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+//                .must(QueryBuilders.rangeQuery("date_published").gte(startDate).lte(endDate));
+//
+//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+//        searchSourceBuilder.query(boolQuery);
+//        searchSourceBuilder.size(10000);  // Adjust size as needed
+//
+//        SearchRequest searchRequest = new SearchRequest("article-index4");
+//        searchRequest.source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//        searchResponse.getHits().forEach(hit -> {
+//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+//            Object keywordsField = sourceAsMap.get("keywords");
+//            if (keywordsField instanceof List) {
+//                List<String> keywords = (List<String>) keywordsField;
+//                for (String keyword : keywords) {
+//                    wordFrequencies.put(keyword, wordFrequencies.getOrDefault(keyword, 0) + 1);
+//                }
+//            } else {
+//                // Log a warning or handle the case where keywords is not a list
+//                System.out.println("Warning: keywords is not a list in document " + hit.getId());
+//            }
+//        });
+//
+//        client.close();
+//
+//        return wordFrequencies;
+//    }
 
 
     /**
      * Calculates the correlation coefficient between two sets of keyword counts.
      *
-     * @param keywordCounts1 The first set of keyword counts.
-     * @param keywordCounts2 The second set of keyword counts.
+//     * @param keywordCounts1 The first set of keyword counts.
+//     * @param keywordCounts2 The second set of keyword counts.
      * @return The correlation coefficient.
      */
 
-    public static double calculateCorrelation(Map<LocalDate, Integer> keywordCounts1, Map<LocalDate, Integer> keywordCounts2) {
-        // Convert the keyword counts maps to arrays
-        // Get the common keys (dates) in both maps
-        Set<LocalDate> commonDates = new HashSet<>(keywordCounts1.keySet());
-        commonDates.retainAll(keywordCounts2.keySet());
+//    public static double calculateCorrelation(Map<LocalDate, Integer> keywordCounts1, Map<LocalDate, Integer> keywordCounts2) {
+//        // Convert the keyword counts maps to arrays
+//        // Get the common keys (dates) in both maps
+//        Set<LocalDate> commonDates = new HashSet<>(keywordCounts1.keySet());
+//        commonDates.retainAll(keywordCounts2.keySet());
+//
+//        // Filter the maps to only include entries with the common keys
+//        Map<LocalDate, Integer> filteredCounts1 = keywordCounts1.entrySet().stream()
+//                .filter(entry -> commonDates.contains(entry.getKey()))
+//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+//        Map<LocalDate, Integer> filteredCounts2 = keywordCounts2.entrySet().stream()
+//                .filter(entry -> commonDates.contains(entry.getKey()))
+//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+//
+//        // Convert the filtered maps to arrays
+//        double[] counts1 = filteredCounts1.values().stream().mapToDouble(Integer::doubleValue).toArray();
+//        double[] counts2 = filteredCounts2.values().stream().mapToDouble(Integer::doubleValue).toArray();
+//
+//        // Calculate the correlation coefficient
+//        PearsonsCorrelation pearsonsCorrelation = new PearsonsCorrelation();
+//        double correlation = pearsonsCorrelation.correlation(counts1, counts2);
+//
+//        // Format the correlation
+//        DecimalFormat df = new DecimalFormat("#.##");
+//        correlation = Double.valueOf(df.format(correlation));
+//
+//        return correlation;
+//
+//    }
 
-        // Filter the maps to only include entries with the common keys
-        Map<LocalDate, Integer> filteredCounts1 = keywordCounts1.entrySet().stream()
-                .filter(entry -> commonDates.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        Map<LocalDate, Integer> filteredCounts2 = keywordCounts2.entrySet().stream()
-                .filter(entry -> commonDates.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        // Convert the filtered maps to arrays
-        double[] counts1 = filteredCounts1.values().stream().mapToDouble(Integer::doubleValue).toArray();
-        double[] counts2 = filteredCounts2.values().stream().mapToDouble(Integer::doubleValue).toArray();
-
-        // Calculate the correlation coefficient
-        PearsonsCorrelation pearsonsCorrelation = new PearsonsCorrelation();
-        double correlation = pearsonsCorrelation.correlation(counts1, counts2);
-
-        // Format the correlation
-        DecimalFormat df = new DecimalFormat("#.##");
-        correlation = Double.valueOf(df.format(correlation));
-
-        return correlation;
-
-    }
-
-    public static Map<String, Float> fetchTermPercentages(
+    public Map<String, Float> fetchTermPercentages(
             String term1, String term2, String term3, String term4,
             String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
 
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
+        long count1 = executeCountQuery(term1, term2, indexName, startDate, endDate);
+        long count2 = executeCountQuery(term3, term4, indexName, startDate, endDate);
 
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
+        long total = count1 + count2;
+        float percentage1 = total > 0 ? (float) count1 / total * 100 : 0;
+        float percentage2 = total > 0 ? (float) count2 / total * 100 : 0;
+
+        return Map.of(
+                term1 + " " + term2, percentage1,
+                term3 + " " + term4, percentage2
+        );
+    }
+
+    private long executeCountQuery(String term1, String term2, String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
+        SpanTermQuery termQuery1 = SpanTermQuery.of(st -> st.field("text").value(term1));
+        SpanTermQuery termQuery2 = SpanTermQuery.of(st -> st.field("text").value(term2));
+
+        CountResponse countResponse = elasticsearchClient.count(c -> c
+                .index(indexName)
+                .query(q -> q
+                        .bool(b -> b
+                                .must(m -> m
+                                        .spanNear(sn -> sn
+                                                .inOrder(false)
+                                                .slop(50)
+                                                .clauses(cl -> cl.spanTerm(termQuery1))
+                                                .clauses(cl -> cl.spanTerm(termQuery2))
+                                        )
+                                )
+                                .filter(f -> f
+                                        .range(r -> r
+                                                .field("published_date")
+                                                .gte(JsonData.of(startDate.toString()))
+                                                .lte(JsonData.of(endDate.toString()))
+                                        )
+                                )
+                        )
+                )
         );
 
-        try {
-            long count1 = executeCountQuery(client, term1, term2, indexName, startDate, endDate);
-            long count2 = executeCountQuery(client, term3, term4, indexName, startDate, endDate);
+        return countResponse.count();
+    }//
+    public Map<String, List<String>> fetchHighlights(String term1, String term2, String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
+        Map<String, List<String>> highlights = new HashMap<>();
 
-            long total = count1 + count2;
-            float percentage1 = (float) count1 / total;
-            float percentage2 = (float) count2 / total;
+        SearchResponse<Document> response = elasticsearchClient.search(s -> s
+                        .index(indexName)
+                        .query(q -> q
+                                .spanNear(n -> n
+                                        .clauses(List.of(
+                                                SpanQuery.of(c -> c.spanTerm(st -> st.field("text").value(term1))),
+                                                SpanQuery.of(c -> c.spanTerm(st -> st.field("text").value(term2)))
+                                        ))
+                                        .slop(50)
+                                        .inOrder(false)
+                                )
+                        )
+                        .highlight(h -> h
+                                .fields("text", f -> f
+                                        .preTags("<em>")
+                                        .postTags("</em>")
+                                )
+                        )
+                        .size(10)
+                , Document.class);
 
-            return Map.of(
-                    term1 + " " + term2, percentage1,
-                    term3 + " " + term4, percentage2
-            );
+        for (Hit<Document> hit : response.hits().hits()) {
+            String documentId = hit.id();
+            List<String> highlightTexts = new ArrayList<>();
 
-        } finally {
-            client.close();
+            if (hit.highlight() != null && hit.highlight().containsKey("text")) {
+                // Use the list of strings directly
+                highlightTexts = hit.highlight().get("text");
+            }
+
+            highlights.put(documentId, highlightTexts);
+        }
+
+        return highlights;
+    }
+    @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+
+    public static class HighlightHit { // Add the 'static' keyword here
+        private Map<String, HighlightField> highlight;
+        public Map<String, HighlightField> getHighlight() {
+            return highlight;
+        }
+        private String title;
+        private List<String> authors;
+        @JsonProperty("published_date") // Map the property to the JSON field
+        private String published_date;
+        private String url;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getPublishedDate() {
+            return published_date;
+        }
+
+        public void setPublishedDate(String published_date) {
+            this.published_date = published_date;
+        }
+
+        public List<String> getAuthors() {
+            return authors;
+        }
+
+        public void setAuthors(List<String> authors) {
+            this.authors = authors;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        private String text;
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public Map<String, HighlightField> highlight() {
+            return highlight;
+        }
+
+        public void setHighlight(Map<String, HighlightField> highlight) {
+            this.highlight = highlight;
+        }
+
+        static class HighlightField {
+            private List<String> fragments;
+
+            public List<String> fragments() {
+                return fragments;
+            }
+
+            public void setFragments(List<String> fragments) {
+                this.fragments = fragments;
+            }
         }
     }
 
-    // Method to execute count query
-    private static long executeCountQuery(
-            RestHighLevelClient client, String term1, String term2,
-            String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
+    public List<DocumentData> fetchDocumentsByTopic(LocalDate startDate, LocalDate endDate, int topicId, String index) throws IOException {
 
-        SpanNearQueryBuilder spanNearQuery = QueryBuilders.spanNearQuery(
-                        QueryBuilders.spanTermQuery("text", term1), 50
-                ).inOrder(false)
-                .addClause(QueryBuilders.spanTermQuery("text", term2));
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(spanNearQuery);
-        searchSourceBuilder.size(0);
-
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-        return searchResponse.getHits().getTotalHits().value;
-    }
-
-    // Method to execute highlights query
-    public static Map<String, List<String>> fetchHighlights(
-            String term1, String term2, String indexName,
-            LocalDate startDate, LocalDate endDate) throws IOException {
-
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
+        List<DocumentData> documents = new ArrayList<>();
 
         try {
-            SpanNearQueryBuilder spanNearQuery = QueryBuilders.spanNearQuery(
-                            QueryBuilders.spanTermQuery("text", term1), 50
-                    ).inOrder(false)
-                    .addClause(QueryBuilders.spanTermQuery("text", term2));
+            // Constructing the query
+            // Constructing the query
+            // Constructing the query
+            SearchResponse<Document> response = elasticsearchClient.search(s -> s
+                            .index(index)
+                            .query(q -> q
+                                    .bool(b -> b
+                                            .must(m -> m
+                                                    .term(t -> t
+                                                            .field("topic")
+                                                            .value(topicId) // Corrected line
+                                                    )
+                                            )
+                                            .must(m -> m
+                                                    .range(r -> r
+                                                            .field("published_date")
+                                                            .gte(JsonData.of(startDate.toString())) // Keep using JsonData.of() with LocalDate.toString()
+                                                            .lte(JsonData.of(endDate.toString()))
+                                                    )
+                                            )
+                                    )
+                            )
+                            .size(10000), // Adjust size as needed
+                    Document.class
+            );
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(spanNearQuery);
+//            System.out.println("response:"+ response);
 
-            HighlightBuilder highlightBuilder = new HighlightBuilder();
-            HighlightBuilder.Field highlightText = new HighlightBuilder.Field("text");
-            highlightBuilder.field(highlightText);
-            searchSourceBuilder.highlighter(highlightBuilder);
-            searchSourceBuilder.size(10);
+            // Parsing the response
+            for (Hit<Document> hit : response.hits().hits()) {
+                Document doc = hit.source();
+                String title = doc.getTitle();
+                String date = doc.getPublishedDate();
+                String url = doc.getUrl();
 
-            SearchRequest searchRequest = new SearchRequest(indexName);
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-            Map<String, List<String>> highlights = new HashMap<>();
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                String documentId = hit.getId();
-                HighlightField highlightField = hit.getHighlightFields().get("text");
-                if (highlightField != null) {
-                    List<String> highlightSnippets = new ArrayList<>();
-                    for (var fragment : highlightField.fragments()) {
-                        highlightSnippets.add(fragment.string());
-                    }
-                    highlights.put(documentId, highlightSnippets);
-                }
+                documents.add(new DocumentData(title, date, url)); // Storing each document's data
             }
 
-            return highlights;
+            return documents;
+
 
         } finally {
-            client.close();
+
         }
     }
 
@@ -725,26 +786,11 @@ public class KeywordFrequencyService {
         return sb.toString();
     }
 
-    public static Map<String, Float> fetchKeywordPercentages(
+    public Map<String, Float> fetchKeywordPercentages(
             String keyword1, String keyword2, String indexName) throws IOException {
-
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                            @Override
-                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            }
-                        })
-        );
-
         try {
-            long count1 = executeCountQuery(client, keyword1, indexName);
-            long count2 = executeCountQuery(client, keyword2, indexName);
+            long count1 = executeCountQuery(keyword1, indexName);
+            long count2 = executeCountQuery(keyword2, indexName);
 
             long total = count1 + count2;
             float percentage1 = total == 0 ? 0 : (float) count1 / total;
@@ -755,27 +801,26 @@ public class KeywordFrequencyService {
                     keyword2, percentage2
             );
 
-        } finally {
-            client.close();
+        } catch (Exception e) {
+            // Handle exception
+            throw new RuntimeException("Error fetching keyword percentages", e);
         }
     }
 
     // Method to execute count query for a specific keyword
-    private static long executeCountQuery(
-            RestHighLevelClient client, String keyword, String indexName) throws IOException {
+    private long executeCountQuery(String keyword, String indexName) throws IOException {
+        // Building the query
+        var response = elasticsearchClient.count(c -> c
+                .index(indexName)
+                .query(q -> q
+                        .match(m -> m
+                                .field("text")
+                                .query(keyword)
+                        )
+                )
+        );
 
-        MatchQueryBuilder matchQuery = QueryBuilders.matchQuery("text", keyword);
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(matchQuery);
-        searchSourceBuilder.size(0);
-
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-
-        return searchResponse.getHits().getTotalHits().value;
+        return response.count();
     }
 
 

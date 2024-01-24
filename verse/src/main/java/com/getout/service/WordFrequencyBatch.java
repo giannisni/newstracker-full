@@ -1,28 +1,57 @@
 package com.getout.service;
+//
+//import java.io.IOException;
+//import java.time.LocalDate;
+//import java.time.format.DateTimeFormatter;
+//import java.time.format.DateTimeFormatterBuilder;
+//import java.time.temporal.ChronoField;
+//import java.util.*;
+//import java.util.concurrent.*;
+//import java.util.logging.Logger;
+//import java.util.concurrent.atomic.AtomicInteger;
+//import co.elastic.clients.elasticsearch.ElasticsearchClient;
+//import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+//import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+//import co.elastic.clients.elasticsearch._types.SortOrder;
+//import co.elastic.clients.elasticsearch.ElasticsearchClient;
+//import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+//import co.elastic.clients.json.JsonData;
+//import org.apache.http.HttpHost;
+//import org.elasticsearch.action.search.*;
+//import org.elasticsearch.client.RequestOptions;
+//import org.elasticsearch.client.RestClient;
+//import org.elasticsearch.client.RestHighLevelClient;
+//import org.elasticsearch.core.TimeValue;
+//import org.elasticsearch.index.query.BoolQueryBuilder;
+//import org.elasticsearch.index.query.QueryBuilders;
+//import org.elasticsearch.search.Scroll;
+//import org.elasticsearch.search.SearchHit;
+//import org.elasticsearch.search.SearchHits;
+//import org.elasticsearch.search.builder.SearchSourceBuilder;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Service;
+//import co.elastic.clients.elasticsearch.core.search.Hit;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+import co.elastic.clients.json.JsonData;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.Logger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.http.HttpHost;
-import org.elasticsearch.action.search.*;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.core.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.springframework.stereotype.Service;
+import java.util.logging.Logger;
 
 import static com.getout.service.IndexMap.indexSortedMap;
 import static com.getout.util.Constants.elastic_host;
@@ -31,6 +60,12 @@ import static com.getout.util.Constants.elastic_host;
 public class WordFrequencyBatch {
     private static AtomicInteger processedHits = new AtomicInteger(0);
 
+    private final ElasticsearchClient client;
+
+    @Autowired
+    public WordFrequencyBatch(ElasticsearchClient client) {
+        this.client = client;
+    }
     private static final Map<Character, String> greekToGreeklishMap = new HashMap<Character, String>() {{
         put('α', "a"); put('Α', "A");
         put('β', "v"); put('Β', "V");
@@ -75,108 +110,108 @@ public class WordFrequencyBatch {
 
 
 
-    public static Map<LocalDate, Integer> searchTopicFrequency(String indexName,String toindex, String topic, List<String> keywords, int batchSize, String startDate, String endDate) throws IOException, InterruptedException, ExecutionException {
-        long overallStartTime = System.currentTimeMillis();
-
-        // Initialize Elasticsearch client
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 9200, "http")));
-
-        // Define date formatter for parsing dates from Elasticsearch
-        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
-                .optionalStart()
-                .appendFraction(java.time.temporal.ChronoField.NANO_OF_SECOND, 1, 9, true)
-                .optionalEnd()
-                .optionalStart()
-                .appendLiteral('Z')
-                .optionalEnd()
-                .toFormatter();
-
-        Map<LocalDate, Integer> dateFrequencyMap = new ConcurrentHashMap<>();
-
-        // Build the search query
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-        for (String keyword : keywords) {
-            boolQuery.should(QueryBuilders.matchQuery("text", keyword));
-        }
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(boolQuery
-                        .filter(QueryBuilders.existsQuery("published_date"))
-                        .filter(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate)))
-                .size(batchSize);
-
-        // Initialize scroll for batch processing
-        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        SearchRequest searchRequest = new SearchRequest(indexName).scroll(scroll).source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        String scrollId = searchResponse.getScrollId();
-        SearchHits hits = searchResponse.getHits();
-        final long totalHits = hits.getTotalHits().value;
-        SearchHit[] searchHits = hits.getHits();
-
-        // Create a fixed thread pool for concurrent processing
-        int numberOfThreads = 4;
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-
-        // Process search results in batches using scroll
-        while (searchHits != null && searchHits.length > 0) {
-            List<Future<Void>> futures = new ArrayList<>();
-
-            for (SearchHit hit : searchHits) {
-                Callable<Void> task = () -> {
-                    int currentProcessedHits = processedHits.incrementAndGet();
-                    logger.info("Total processed hits: " + currentProcessedHits + " / " + totalHits);
-
-                    Object publishedDateObj = hit.getSourceAsMap().get("published_date");
-                    LocalDate date = extractDate(publishedDateObj, formatter);
-
-                    String content = hit.getSourceAsMap().get("text").toString();
-                    int frequency = countKeywordFrequency(content, keywords);
-
-                    dateFrequencyMap.merge(date, frequency, Integer::sum);
-
-                    return null;
-                };
-
-                futures.add(executorService.submit(task));
-            }
-
-            for (Future<Void> future : futures) {
-                future.get();
-            }
-
-            // Fetch the next batch of search results
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
-            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-            scrollId = searchResponse.getScrollId();
-            searchHits = searchResponse.getHits().getHits();
-        }
-
-        executorService.shutdown();
-
-        // Clear the scroll context
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-        client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-
-        client.close();
-
-
-        // Sort the map by date
-        Map<LocalDate, Integer> sortedMap = new TreeMap<>(dateFrequencyMap);
-
-        System.out.print("Map " + sortedMap);
-        indexSortedMap(toindex, sortedMap, topic,indexName);
-
-        long overallElapsedTimeMillis = System.currentTimeMillis() - overallStartTime;
-        double overallElapsedTimeSec = overallElapsedTimeMillis / 1000.0;
-        System.out.printf("Total Elapsed time: %.3f seconds%n", overallElapsedTimeSec);
-
-        System.out.println(String.join(",", keywords) + " sorted");
-        return sortedMap;
-    }
+//    public static Map<LocalDate, Integer> searchTopicFrequency(String indexName,String toindex, String topic, List<String> keywords, int batchSize, String startDate, String endDate) throws IOException, InterruptedException, ExecutionException {
+//        long overallStartTime = System.currentTimeMillis();
+//
+//        // Initialize Elasticsearch client
+//        RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(new HttpHost(elastic_host, 9200, "http")));
+//
+//        // Define date formatter for parsing dates from Elasticsearch
+//        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+//                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
+//                .optionalStart()
+//                .appendFraction(java.time.temporal.ChronoField.NANO_OF_SECOND, 1, 9, true)
+//                .optionalEnd()
+//                .optionalStart()
+//                .appendLiteral('Z')
+//                .optionalEnd()
+//                .toFormatter();
+//
+//        Map<LocalDate, Integer> dateFrequencyMap = new ConcurrentHashMap<>();
+//
+//        // Build the search query
+//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+//        for (String keyword : keywords) {
+//            boolQuery.should(QueryBuilders.matchQuery("text", keyword));
+//        }
+//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+//                .query(boolQuery
+//                        .filter(QueryBuilders.existsQuery("published_date"))
+//                        .filter(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate)))
+//                .size(batchSize);
+//
+//        // Initialize scroll for batch processing
+//        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+//        SearchRequest searchRequest = new SearchRequest(indexName).scroll(scroll).source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//        String scrollId = searchResponse.getScrollId();
+//        SearchHits hits = searchResponse.getHits();
+//        final long totalHits = hits.getTotalHits().value;
+//        SearchHit[] searchHits = hits.getHits();
+//
+//        // Create a fixed thread pool for concurrent processing
+//        int numberOfThreads = 4;
+//        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+//
+//        // Process search results in batches using scroll
+//        while (searchHits != null && searchHits.length > 0) {
+//            List<Future<Void>> futures = new ArrayList<>();
+//
+//            for (SearchHit hit : searchHits) {
+//                Callable<Void> task = () -> {
+//                    int currentProcessedHits = processedHits.incrementAndGet();
+//                    logger.info("Total processed hits: " + currentProcessedHits + " / " + totalHits);
+//
+//                    Object publishedDateObj = hit.getSourceAsMap().get("published_date");
+//                    LocalDate date = extractDate(publishedDateObj, formatter);
+//
+//                    String content = hit.getSourceAsMap().get("text").toString();
+//                    int frequency = countKeywordFrequency(content, keywords);
+//
+//                    dateFrequencyMap.merge(date, frequency, Integer::sum);
+//
+//                    return null;
+//                };
+//
+//                futures.add(executorService.submit(task));
+//            }
+//
+//            for (Future<Void> future : futures) {
+//                future.get();
+//            }
+//
+//            // Fetch the next batch of search results
+//            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+//            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
+//            scrollId = searchResponse.getScrollId();
+//            searchHits = searchResponse.getHits().getHits();
+//        }
+//
+//        executorService.shutdown();
+//
+//        // Clear the scroll context
+//        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+//        clearScrollRequest.addScrollId(scrollId);
+//        client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+//
+//        client.close();
+//
+//
+//        // Sort the map by date
+//        Map<LocalDate, Integer> sortedMap = new TreeMap<>(dateFrequencyMap);
+//
+//        System.out.print("Map " + sortedMap);
+//        indexSortedMap(toindex, sortedMap, topic,indexName);
+//
+//        long overallElapsedTimeMillis = System.currentTimeMillis() - overallStartTime;
+//        double overallElapsedTimeSec = overallElapsedTimeMillis / 1000.0;
+//        System.out.printf("Total Elapsed time: %.3f seconds%n", overallElapsedTimeSec);
+//
+//        System.out.println(String.join(",", keywords) + " sorted");
+//        return sortedMap;
+//    }
 
     /**
      * Extracts a LocalDate from an object, using the provided formatter.
@@ -223,121 +258,128 @@ public class WordFrequencyBatch {
      *
      * @param indexName  The name of the Elasticsearch index to search.
      * @param keyword    The keyword to search for.
-     * @param batchSize  The number of search results to retrieve in each batch.
      * @param startDate  The start date of the search range.
      * @param endDate    The end date of the search range.
      * @return A sorted map with dates as keys and keyword frequencies as values.
-     * @throws IOException, InterruptedException, ExecutionException
      */
-    public static Map<LocalDate, Integer> searchKeywordFrequency(String indexName,String toindex, String keyword, int batchSize, String startDate, String endDate) throws IOException, InterruptedException, ExecutionException {
-        long overallStartTime = System.currentTimeMillis();
-
-        // Initialize Elasticsearch client
-        RestHighLevelClient client = new RestHighLevelClient(
-                RestClient.builder(new HttpHost(elastic_host, 9200, "http")));
-
-        System.out.println("keyword : " + keyword);
-        // Define date formatter for parsing dates from Elasticsearch
-        DateTimeFormatter formatterWithZone = new DateTimeFormatterBuilder()
-                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
-                .optionalStart()
-                .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
-                .optionalEnd()
-                .appendOffset("+HH:MM", "Z")
-                .toFormatter();
-
-        DateTimeFormatter formatterWithoutZone = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-
-        DateTimeFormatter combinedFormatter = new DateTimeFormatterBuilder()
-                .appendOptional(formatterWithZone)
-                .appendOptional(formatterWithoutZone)
-                .toFormatter();
-
-
+    public Map<LocalDate, Integer> searchKeywordFrequency(String indexName, String keyword, String startDate, String endDate) throws IOException, InterruptedException {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         Map<LocalDate, Integer> dateFrequencyMap = new ConcurrentHashMap<>();
 
-        // Build the search query
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(QueryBuilders.boolQuery()
-                        .must(QueryBuilders.matchQuery("text", keyword))
-                        .filter(QueryBuilders.existsQuery("published_date"))
-                        .filter(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate)))
-                .size(batchSize);
+        try {
+            // Preparing the search request
+            SearchRequest searchRequest = new SearchRequest.Builder()
+                    .index(indexName)
+                    .query(q -> q
+                            .bool(b -> b
+                                    .must(m -> m
+                                            .match(t -> t
+                                                    .field("text")
+                                                    .query(keyword)
+                                            )
+                                    )
+                                    .filter(f -> f
+                                            .range(r -> r
+                                                    .field("published_date")
+                                                    .gte(JsonData.of(startDate))
+                                                    .lte(JsonData.of(endDate))
+                                            )
+                                    )
+                            )
+                    )
+                    .size(1000) // Adjust batch size as needed
+                    .build();
 
-        // Initialize scroll for batch processing
-        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        SearchRequest searchRequest = new SearchRequest(indexName).scroll(scroll).source(searchSourceBuilder);
+            SearchResponse<MyDocumentClass> searchResponse = client.search(searchRequest, MyDocumentClass.class);
+            HitsMetadata<MyDocumentClass> hits = searchResponse.hits();
 
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        String scrollId = searchResponse.getScrollId();
-        SearchHits hits = searchResponse.getHits();
-        final long totalHits = hits.getTotalHits().value;
-        SearchHit[] searchHits = hits.getHits();
-        System.out.println(searchHits);
-        // Create a fixed thread pool for concurrent processing
-        int numberOfThreads = 4;
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-
-        // Process search results in batches using scroll
-        while (searchHits != null && searchHits.length > 0) {
-            List<Future<Void>> futures = new ArrayList<>();
-
-            for (SearchHit hit : searchHits) {
-                Callable<Void> task = () -> {
-                    int currentProcessedHits = processedHits.incrementAndGet();
-                    logger.info("Total processed hits: " + currentProcessedHits + " / " + totalHits);
-
-                    Object publishedDateObj = hit.getSourceAsMap().get("published_date");
-                    LocalDate date = extractDate(publishedDateObj, combinedFormatter);
-
-                    String content = hit.getSourceAsMap().get("text").toString();
-
-//                    System.out.println("Content: " + content);
-                    List<String> keywordList = Collections.singletonList(keyword);
-                    System.out.println("KeywordList: " + keywordList);
-                    int frequency = countKeywordFrequency(content, keywordList);
-                    System.out.println("Frequency: " + frequency);
-
-                    dateFrequencyMap.merge(date, frequency, Integer::sum);
-
-                    return null;
-                };
-
-                futures.add(executorService.submit(task));
+            ExecutorService executorService = Executors.newFixedThreadPool(4);
+            try {
+                for (Hit<MyDocumentClass> hit : hits.hits()) {
+                    executorService.submit(() -> {
+                        MyDocumentClass doc = hit.source();
+                        LocalDate date = LocalDate.parse(doc.getPublishedDate(), formatter);
+                        int frequency = countKeywordFrequency(doc.getText(), Collections.singletonList(keyword));
+                        dateFrequencyMap.merge(date, frequency, Integer::sum);
+                    });
+                }
+            } finally {
+                executorService.shutdown();
+                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                }
             }
 
-            for (Future<Void> future : futures) {
-                future.get();
-            }
-
-            // Fetch the next batch of search results
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
-            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-            scrollId = searchResponse.getScrollId();
-            searchHits = searchResponse.getHits().getHits();
+        } catch (ElasticsearchException e) {
+            e.printStackTrace(); // Handle Elasticsearch exceptions
         }
 
-        executorService.shutdown();
+        return new TreeMap<>(dateFrequencyMap);
+    }
 
-        // Clear the scroll context
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-        client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+    static class MyDocumentClass {
+        private String text;
+        private String publishedDate;
+        private String date; // Instead of LocalDate
 
-        client.close();
+        private String keyword; // Add this field
+
+        public String getIndex() {
+            return index;
+        }
+
+        public void setIndex(String index) {
+            this.index = index;
+        }
+
+        private String index; // Add this field
+
+        private Integer value;
+        // Getters and setters
+        public String getText() {
+            return text;
+        }
+
+        public String getKeyword() {
+            return keyword;
+        }
+
+        public void setKeyword(String keyword) {
+            this.keyword = keyword;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public String getPublishedDate() {
+            return publishedDate;
+        }
+
+        public void setPublishedDate(String publishedDate) {
+            this.publishedDate = publishedDate;
+        }
+        public LocalDate getLocalDate() {
+            return LocalDate.parse(date);
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        public Integer getValue() {
+            return value;
+        }
+
+        public void setValue(Integer value) {
+            this.value = value;
+        }
 
 
-        // Sort the map by date
-        Map<LocalDate, Integer> sortedMap = new TreeMap<>(dateFrequencyMap);
-
-        indexSortedMap(toindex, sortedMap, keyword, indexName);
-
-        long overallElapsedTimeMillis = System.currentTimeMillis() - overallStartTime;
-        double overallElapsedTimeSec = overallElapsedTimeMillis / 1000.0;
-        System.out.printf("Total Elapsed time: %.3f seconds%n", overallElapsedTimeSec);
-
-        System.out.println(keyword + " sorted");
-        return sortedMap;
     }
 
 

@@ -4,7 +4,7 @@ interface Config {
 }
 
 const config: Config = {
-    API_URL: '',
+    API_URL: 'https://newstracker-test-4a53f596dc72.herokuapp.com/'
     // ... other configuration values
 };
 

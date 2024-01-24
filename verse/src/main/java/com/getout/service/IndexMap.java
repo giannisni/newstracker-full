@@ -26,10 +26,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Service
 public class IndexMap {
@@ -43,65 +40,53 @@ public class IndexMap {
      * @throws IOException, InterruptedException, ExecutionException If there's an issue indexing the data.
      */
 
-    public static void indexSortedMap(String indexName, Map<LocalDate, Integer> sortedMap, String keyword,String fromIndex) throws IOException, InterruptedException, ExecutionException {
+    public static void indexSortedMap(String indexName, Map<LocalDate, Integer> sortedMap, String keyword, String fromIndex) throws IOException, InterruptedException {
         // Initialize Elasticsearch RestClient
-
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(Constants.ELASTICSEARCH_USERNAME, Constants.ELASTICSEARCH_PASSWORD));
 
-        // Create RestClient with credentials
         RestClient restClient = RestClient.builder(new HttpHost(Constants.elastic_host, 443, "https"))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
                 .build();
 
-        // Create the transport with a Jackson mapper
         ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
-
-        // Initialize the Elasticsearch client
         ElasticsearchClient client = new ElasticsearchClient(transport);
 
-        // Determine the number of threads based on available processors and map size
-        int numThreads = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), sortedMap.size()));
+        // Set a fixed upper limit for the thread pool size
+        int numThreads = Math.min(10, Runtime.getRuntime().availableProcessors()); // Adjust the upper limit as necessary
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
 
-        // List to hold futures of submitted tasks
-        List<Future<Void>> futures = new ArrayList<>();
+        try {
+            for (Map.Entry<LocalDate, Integer> entry : sortedMap.entrySet()) {
+                executorService.submit(() -> {
+                    try {
+                        LocalDate date = entry.getKey();
+                        Integer value = entry.getValue();
 
-        // Iterate over the sorted map and submit indexing tasks
-        for (Map.Entry<LocalDate, Integer> entry : sortedMap.entrySet()) {
-            futures.add(executorService.submit(() -> {
-                LocalDate date = entry.getKey();
-                Integer value = entry.getValue();
+                        JsonObject jsonObject = Json.createObjectBuilder()
+                                .add("date", date.toString())
+                                .add("value", value)
+                                .add("keyword", keyword)
+                                .add("index", fromIndex)
+                                .build();
 
-                // Construct the JSON object for indexing
-                JsonObject jsonObject = Json.createObjectBuilder()
-                        .add("date", date.toString())
-                        .add("value", value)
-                        .add("keyword", keyword)
-                        .add("index",fromIndex)
-                        .build();
-
-                Reader input = new StringReader(jsonObject.toString().replace('\'', '"'));
-                System.out.println(jsonObject);
-
-                System.out.println(input.toString());
-                // Create and execute the index request
-                IndexRequest<JsonData> request = IndexRequest.of(i -> i.index(indexName).withJson(input));
-                IndexResponse response = client.index(request);
-
-                return null; // Return null as Void cannot be instantiated
-            }));
+                        Reader input = new StringReader(jsonObject.toString().replace('\'', '"'));
+                        IndexRequest<JsonData> request = IndexRequest.of(i -> i.index(indexName).withJson(input));
+                        client.index(request);
+                    } catch (Exception e) {
+                        // Handle exceptions here
+                        e.printStackTrace();
+                    }
+                });
+            }
+        } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) { // Wait for all tasks to complete
+                executorService.shutdownNow();
+            }
+            restClient.close();
         }
-
-        // Wait for all tasks to complete
-        for (Future<Void> future : futures) {
-            future.get();
-        }
-        System.out.println("Indexed index : " + indexName + " completed");
-        // Cleanup resources
-        executorService.shutdown();
-        restClient.close();
     }
 }

@@ -25,10 +25,10 @@ export const Header: React.FC = () => {
 
     return (
         <Layout.Header style={headerStyles}>
-            <AlgoliaSearch />
-            <Space align="center" size="middle">
-                <Notifications />
-                <CurrentUser />
+            {/* <AlgoliaSearch /> */}
+            <Space align="baseline" size="middle">
+                {/* <Notifications /> */}
+                {/* <CurrentUser /> */}
             </Space>
         </Layout.Header>
     );

@@ -20,9 +20,9 @@ export const DashboardTermsPercentageChart: React.FC<{keyword1: String, keyword2
         axios.get(`${apiUrl}api/news/term-percentages`, {
             params: {
                 term1: keyword1,
-                term2: keyword2,
-                term3: keyword3,
-                term4: keyword2,
+                term2: keyword3,
+                term3: keyword2,
+                term4: keyword3,
                 indexName: 'cnn_articles_newone',
                 startDate: '2023-01-01',
                 endDate: '2023-12-31'

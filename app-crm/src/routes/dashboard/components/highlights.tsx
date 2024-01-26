@@ -22,7 +22,7 @@ export const DashboardHighlights: React.FC<{keyword1: string, keyword2: string, 
             params: {
                 term1: keyword1,
                 term2: keyword2,
-                indexName: 'fox_articles_new',
+                indexName: 'cnn_articles_newone',
                 startDate: '2023-01-01',
                 endDate: '2023-12-31'
             }

@@ -4,7 +4,7 @@ interface Config {
 }
 
 const config: Config = {
-    API_URL: 'https://newstracker-test-4a53f596dc72.herokuapp.com/'
+    API_URL: import.meta.env.VITE_APP_API_URL
     // ... other configuration values
 };
 

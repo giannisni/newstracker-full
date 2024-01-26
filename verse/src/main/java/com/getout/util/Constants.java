@@ -5,6 +5,10 @@ public class Constants {
 
     public static final String ELASTICSEARCH_USERNAME = System.getenv("ELASTICSEARCH_USERNAME");
     public static final String ELASTICSEARCH_PASSWORD = System.getenv("ELASTICSEARCH_PASSWORD");
+    public static final int ELASTICSEARCH_PORT = Integer.parseInt(System.getenv("ELASTICSEARCH_PORT"));
+
+    public static final String ELASTICSEARCH_PROTOCOL =  System.getenv("ELASTICSEARCH_PROTOCOL");
+
     static {
 
 

@@ -10,14 +10,14 @@ interface WordData {
     value: number;
 }
 
-export const DashBoardWordCloudChart = () => {
+export const DashBoardWordCloudChart : React.FC<{index_name:String }> = ({ index_name}) => {
     const [data, setData] = useState([]);
 
     useEffect(() => {
         const fetchWordCloudData = async() => {
             try {
             const apiUrl = configa.API_URL;
-            const response = await axios.get(`${apiUrl}api/news/wordcloud?indexName=cnn_keyword_frequencies`);
+            const response = await axios.get(`${apiUrl}api/news/wordcloud?indexName=${index_name}_keyword_frequencies`);
             const transformedData = response.data.map((word: WordData) => ({
             x: word.text, // 'x' as the word field
             value: word.value * 10000 // Adjust size scaling as needed
@@ -28,7 +28,7 @@ export const DashBoardWordCloudChart = () => {
             }
             };
             fetchWordCloudData();
-            }, []);
+            }, [index_name]);
             const config: WordCloudConfig = {
                 data,
                 wordField: 'x',

@@ -11,10 +11,11 @@ type TermData = {
   value: any; // Consider specifying a more specific type than 'any' if possible
 };
 
-export const DashboardTermsPercentageChart: React.FC<{keyword1: String, keyword2: String, keyword3: String, chartTitle: String}> = ({keyword1, keyword2, keyword3, chartTitle}) => {
+export const DashboardTermsPercentageChart: React.FC<{index_name:String,keyword1: String, keyword2: String, keyword3: String, chartTitle: String}> = ({index_name,keyword1, keyword2, keyword3, chartTitle}) => {
     // Initialize termsData with the correct type
     const [termsData, setTermsData] = useState<TermData[]>([]);
     const apiUrl = configa.API_URL;
+    // const elastic_index = configa.INDEX_NAME;
 
     useEffect(() => {
         axios.get(`${apiUrl}api/news/term-percentages`, {
@@ -23,7 +24,7 @@ export const DashboardTermsPercentageChart: React.FC<{keyword1: String, keyword2
                 term2: keyword3,
                 term3: keyword2,
                 term4: keyword3,
-                indexName: 'cnn_articles_newone',
+                indexName: `${index_name}_articles_newone`,
                 startDate: '2023-01-01',
                 endDate: '2023-12-31'
             }
@@ -36,7 +37,7 @@ export const DashboardTermsPercentageChart: React.FC<{keyword1: String, keyword2
             setTermsData(transformedData);
         })
         .catch(error => console.error("Error fetching term percentages", error));
-    }, [keyword1, keyword2, keyword3]);
+    }, [index_name, keyword1, keyword2, keyword3]); // Include index_name in the dependency array
 
     const config: PieConfig = {
         data: termsData,

@@ -7,6 +7,9 @@ public class Document {
     private String title;
     private String text;
 
+
+
+    private String summary;
     public String getDocument() {
         return document;
     }
@@ -32,6 +35,9 @@ public class Document {
     private String publishedDate;
     private String url;
 
+
+
+    private String tone;
     // Getters and setters for each field
     public String getTitle() {
         return title;
@@ -45,6 +51,13 @@ public class Document {
         return text;
     }
 
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
     public void setText(String text) {
         this.text = text;
     }
@@ -56,7 +69,13 @@ public class Document {
     public void setAuthors(List<String> authors) {
         this.authors = authors;
     }
+    public String getTone() {
+        return tone;
+    }
 
+    public void setTone(String tone) {
+        this.tone = tone;
+    }
     public String getPublishedDate() {
         return publishedDate;
     }

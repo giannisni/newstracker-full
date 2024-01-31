@@ -11,18 +11,19 @@ interface Highlights {
     [documentId: string]: Highlight[];
 }
 
-export const DashboardHighlights: React.FC<{keyword1: string, keyword2: string, chartTitle: string}> = ({keyword1, keyword2, chartTitle}) => {
+export const DashboardHighlights: React.FC<{index_name:String,keyword1: string, keyword2: string, chartTitle: string}> = ({index_name,keyword1, keyword2, chartTitle}) => {
     const [activities, setActivities] = useState([]); // If you need to type this, add the type similarly
     const [highlights, setHighlights] = useState<Highlights>({});
     const [isLoading, setIsLoading] = useState(true);
     const apiUrl = configa.API_URL;
-
+    const elastic_index = configa.INDEX_NAME;
+    console.log(`${elastic_index}_articles_new`);
     useEffect(() => {
         axios.get(`${apiUrl}api/news/highlights`, {
             params: {
                 term1: keyword1,
                 term2: keyword2,
-                indexName: 'cnn_articles_newone',
+                indexName: `${index_name}_articles_newone`,
                 startDate: '2023-01-01',
                 endDate: '2023-12-31'
             }
@@ -36,7 +37,7 @@ export const DashboardHighlights: React.FC<{keyword1: string, keyword2: string, 
         .finally(() => {
             setIsLoading(false);
         });
-    }, [keyword1, keyword2]); // Added keyword1 and keyword2 as dependencies
+    }, [index_name,keyword1, keyword2]); // Added keyword1 and keyword2 as dependencies
 
     const renderHighlights = (documentId: string) => {
         return highlights[documentId]?.slice(0, 4).map((highlight, index: number) => (

@@ -11,16 +11,17 @@ interface TermData {
     value: unknown; // Replace with the appropriate type
 }
 
-export const DashboardTermKeywordPercentageChart: React.FC<{ keyword1: string, keyword2: string, chartTitle: string }> = ({ keyword1, keyword2, chartTitle }) => {
+export const DashboardTermKeywordPercentageChart: React.FC<{index_name:String, keyword1: string, keyword2: string, chartTitle: string }> = ({index_name, keyword1, keyword2, chartTitle }) => {
     const [termsData, setTermsData] = useState<TermData[]>([]);
     const apiUrl = configa.API_URL;
+    const elastic_index = configa.INDEX_NAME;
 
     useEffect(() => {
         axios.get(`${apiUrl}api/news/keyword-percentages`, {
             params: {
                 keyword1: keyword1,
                 keyword2: keyword2,
-                indexName: 'cnn_articles_newone' // Adjust the index name as necessary
+                indexName: `${index_name}_articles_newone`,
             }
         })
         .then(response => {
@@ -31,7 +32,7 @@ export const DashboardTermKeywordPercentageChart: React.FC<{ keyword1: string, k
             setTermsData(transformedData);
         })
         .catch(error => console.error("Error fetching keyword percentages", error));
-    }, [keyword1, keyword2]);
+    }, [index_name,keyword1, keyword2]);
 
     const config: PieConfig = {
         data: termsData,

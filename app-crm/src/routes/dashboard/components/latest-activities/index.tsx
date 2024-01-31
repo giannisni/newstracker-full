@@ -11,15 +11,17 @@ interface Activity {
     url: string;
 }
 
-export const DashboardLatestActivities = () => {
+export const DashboardLatestActivities : React.FC<{index_name:String }> = ({ index_name}) => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const apiUrl = configa.API_URL;
 
+    console.log(`${index_name}_articles_new_news_topics`);
     useEffect(() => {
         axios.get(`${apiUrl}api/news/by-topic`, {
             params: {
-                index: 'cnn_articles_new_news_topics',
+                
+                index: `${index_name}_articles_new_news_topics`,
                 topicId: '3',
                 startDate: '2023-01-01',
                 endDate: '2023-12-31'
@@ -44,7 +46,7 @@ export const DashboardLatestActivities = () => {
             setIsLoading(false);
             console.log('Final Activities State:', activities); // Log final state of activities
         });
-    }, []);
+    }, [index_name]);
 
     return (
         <Card 
@@ -54,7 +56,7 @@ export const DashboardLatestActivities = () => {
             </Tooltip>
         }
         loading={isLoading}
-        style={{ height: "100%", width:"75%"}}
+        style={{ height: "100%", width:"74%"}}
     >
         <div>
             {activities.map((activity, index) => (

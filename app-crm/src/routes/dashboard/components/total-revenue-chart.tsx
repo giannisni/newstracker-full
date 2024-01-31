@@ -1,15 +1,54 @@
-import React, { Suspense } from "react";
+import React, { useState,useEffect,Suspense } from "react";
 import { GaugeConfig } from "@ant-design/plots";
 import { Card } from "antd";
 import { Text } from "@/components"; // Ensure this path is correct
+import configa from 'config/config'; // Adjust the path as necessary
+import axios from 'axios';
 
 const Gauge = React.lazy(() => import("@ant-design/plots/es/components/gauge"));
 
 export const DashboardSentimentAnalysisChart: React.FC<{
-    sentimentScore: number;
+    
     chart_title: string;
-    description?: string; // Optional description prop
-}> = ({ sentimentScore, chart_title, description }) => {
+    description?: string; 
+    term: string;
+    sentiment_index:string;// Optional description prop
+}> = ({  chart_title, description, sentiment_index, term }) => {
+
+
+    const apiUrl = configa.API_URL;
+    const [sentimentScore, setSentimentScore] = useState<number>(0);
+
+    useEffect(() => {
+        const fetchSentimentScore = async () => {
+            const startDate = "2023-01-01";
+            const endDate = "2023-12-31";
+            const index = "sentiment-analysis-results";
+            try {
+                // Replace with your actual API endpoint
+                const response = await axios.get(`${apiUrl}api/news/calculate?`, {
+                    params: {
+                        index,
+                        sentiment_index: sentiment_index + "_articles_new",
+                        term,
+                        startDate,
+                        endDate
+                    }
+                });
+                if (response.data && typeof response.data === 'number') {
+                    setSentimentScore(response.data);
+                    console.log(response.data);
+
+                }
+            } catch (error) {
+                console.error('Error fetching sentiment score:', error);
+            }
+        };
+        
+        fetchSentimentScore();
+    }, [sentiment_index]);
+
+
     // Ensure sentimentScore is a number and within expected range
     const validSentimentScore = typeof sentimentScore === 'number' ? sentimentScore : 0;
     const normalizedScore = (Number(validSentimentScore as any) + 1) / 2;

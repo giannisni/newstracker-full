@@ -31,6 +31,12 @@ import java.util.concurrent.*;
 @Service
 public class IndexMap {
 
+    private final ElasticsearchClient client;
+
+    @Autowired
+    public IndexMap(ElasticsearchClient client) {
+        this.client = client;
+    }
     /**
      * Indexes a sorted map into Elasticsearch.
      *
@@ -40,23 +46,12 @@ public class IndexMap {
      * @throws IOException, InterruptedException, ExecutionException If there's an issue indexing the data.
      */
 
-    public static void indexSortedMap(String indexName, Map<LocalDate, Integer> sortedMap, String keyword, String fromIndex) throws IOException, InterruptedException {
-        // Initialize Elasticsearch RestClient
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(Constants.ELASTICSEARCH_USERNAME, Constants.ELASTICSEARCH_PASSWORD));
-
-        RestClient restClient = RestClient.builder(new HttpHost(Constants.elastic_host, 443, "https"))
-                .setHttpClientConfigCallback(httpClientBuilder ->
-                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
-                .build();
-
-        ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
-        ElasticsearchClient client = new ElasticsearchClient(transport);
+    public void indexSortedMap(String fromIndex, Map<LocalDate, Integer> sortedMap, String keyword, String toIndex) throws IOException, InterruptedException {
 
         // Set a fixed upper limit for the thread pool size
         int numThreads = Math.min(10, Runtime.getRuntime().availableProcessors()); // Adjust the upper limit as necessary
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+//        System.out.println("IndexName: " + indexName);
 
         try {
             for (Map.Entry<LocalDate, Integer> entry : sortedMap.entrySet()) {
@@ -73,7 +68,7 @@ public class IndexMap {
                                 .build();
 
                         Reader input = new StringReader(jsonObject.toString().replace('\'', '"'));
-                        IndexRequest<JsonData> request = IndexRequest.of(i -> i.index(indexName).withJson(input));
+                        IndexRequest<JsonData> request = IndexRequest.of(i -> i.index(toIndex).withJson(input));
                         client.index(request);
                     } catch (Exception e) {
                         // Handle exceptions here
@@ -86,7 +81,7 @@ public class IndexMap {
             if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) { // Wait for all tasks to complete
                 executorService.shutdownNow();
             }
-            restClient.close();
+//            client.close();
         }
     }
 }

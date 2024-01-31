@@ -29,47 +29,29 @@ package com.getout.service;
 //import org.springframework.stereotype.Service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 
-import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.getout.model.Document;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.getout.util.Constants.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class KeywordFrequencyService {
@@ -177,16 +159,88 @@ public class KeywordFrequencyService {
 
     public String elasticHost = "localhost";
 
+    public double calculateAverageSentiment(String sentiment_index,String index, String term,  LocalDate startDate, LocalDate endDate) throws IOException {
+        System.out.println("startDate: " + startDate);
+        System.out.println("endDate: " + endDate);
+        System.out.println("Index sent: " + sentiment_index);
 
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        String start = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE); // "yyyy-MM-dd"
+        String end = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE); // "yyyy-MM-dd"
+
+        System.out.println("startDate: " + start);
+        System.out.println("endDate: " + end);
+
+        SearchResponse<Object> response = elasticsearchClient.search(s -> s
+                        .index(sentiment_index)
+                        .query(q -> q
+                                .bool(b -> b
+                                        .must(m -> m
+                                                .term(t -> t
+                                                        .field("term.keyword")
+                                                        .value(term)
+                                                )
+                                        )
+                                        .must(m -> m
+                                                .term(t -> t
+                                                        .field("index.keyword")
+                                                        .value(index)
+                                                )
+                                        )
+                                        .filter(f -> f
+                                                .range(r -> r
+                                                        .field("date")
+                                                        .gte(JsonData.of(start)) // Keep using JsonData.of() with LocalDate.toString()
+                                                        .lte(JsonData.of(end)) // Keep using JsonData.of() with LocalDate.toString()
+                                                )
+                                        )
+                                )
+                        ),
+                Object.class
+        );
+
+        AtomicReference<Double> totalSentiment = new AtomicReference<>(0.0);
+        long docCount = response.hits().total().value();
+        System.out.println("Doc count: "+docCount);
+
+        if (docCount > 0) {
+            response.hits().hits().forEach(hit -> {
+                Map<String, Object> sourceAsMap = (Map<String, Object>) hit.source();
+                if (sourceAsMap.containsKey("average_sentiment")) {
+                    Object sentimentObj = sourceAsMap.get("average_sentiment");
+                    double sentiment = 0.0;
+                    if (sentimentObj instanceof Double) {
+                        sentiment = (Double) sentimentObj;
+                    } else if (sentimentObj instanceof Integer) {
+                        sentiment = ((Integer) sentimentObj).doubleValue();
+                    }
+                    System.out.println("sentiment score: " + sentiment);
+                    double finalSentiment = sentiment;
+                    totalSentiment.updateAndGet(v -> v + finalSentiment);
+                }
+
+            });
+
+            double average = totalSentiment.get() / docCount;
+            double result = Math.round(average * 10.0) / 10.0;
+
+            System.out.println("Average sentiment: "+result);
+            return result; // Round to 1 decimal place
+        }
+
+
+        return 0.0; // Return 0 if no documents are found
+    }
 
     public Map<LocalDate, Integer> getKeywordCounts(String index, String keyword, LocalDate startDate, LocalDate endDate) throws IOException {
         Map<LocalDate, Integer> keywordCounts = new HashMap<>();
 
-//        System.out.println("Start Date"+ startDate.toString());
+        System.out.println("index : "+ index);
 
         // Build the request
         SearchRequest searchRequest = SearchRequest.of(s -> s
-                .index("cnn_articles_newone_counts")
+                .index(index)
                 .query(q -> q
                         .bool(b -> b
                                 .must(m -> m

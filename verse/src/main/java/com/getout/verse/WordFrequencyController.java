@@ -1,5 +1,6 @@
 package com.getout.verse;
 
+import com.getout.component.ScheduledTasks;
 import com.getout.service.TweetMetricsService;
 import com.getout.service.WordFrequencyBatch;
 import com.getout.service.KeywordFrequencyService;
@@ -10,12 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -33,6 +32,7 @@ public class WordFrequencyController {
     public WordFrequencyController(TweetMetricsService tweetMetricsService, WordFrequencyBatch wordFrequencyBatch) {
         this.tweetMetricsService = tweetMetricsService;
         this.wordFrequencyBatch = wordFrequencyBatch;
+
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
@@ -155,6 +155,23 @@ public class WordFrequencyController {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                 }
             }
+
+            @GetMapping("/calculate")
+            public double calculateAverageSentiment(
+                    @RequestParam String index,
+                    @RequestParam String sentiment_index,
+                    @RequestParam String term,
+                    @RequestParam String startDate,
+                    @RequestParam String endDate) throws Exception {
+                LocalDate start = LocalDate.parse(startDate);
+                LocalDate end = LocalDate.parse(endDate);
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+//                Date start = formatter.parse(startDate);
+//                Date end = formatter.parse(endDate);
+                Double d = keywordFrequencyService.calculateAverageSentiment(index, sentiment_index,term, start, end);
+                return d;
+            }
+
 //
 //    @GetMapping("/getdocs")
 //    public ResponseEntity<List<KeywordFrequencyService.DocumentData>> fetchDocuments(
@@ -177,6 +194,8 @@ public class WordFrequencyController {
             @RequestParam String endDate,
             @RequestParam String index) {
         try {
+
+            System.out.println("Topicindex: "+index);
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
             List<KeywordFrequencyService.DocumentData> documents =
@@ -252,18 +271,27 @@ public class WordFrequencyController {
         this.wordFrequencyBatch = wordFrequencyBatch;
     }
 
+
+
+    @Autowired
+    private ScheduledTasks scheduledTasks;
+
     @GetMapping("/word-frequency")
-    public ResponseEntity<Map<LocalDate, Integer>> getWordFrequency(@RequestParam String indexName,
-                                                                    @RequestParam String keyword,
-                                                                    @RequestParam String toindex,
-                                                                    @RequestParam String startDate,
-                                                                    @RequestParam String endDate,
-                                                                    @RequestParam int batchSize) {
+    public ResponseEntity<String> getWordFrequency(@RequestParam String keywords,
+                                                   @RequestParam String fromIndex,
+                                                   @RequestParam String toIndex,
+                                                   @RequestParam String startDate,
+                                                   @RequestParam String endDate) {
         try {
-            Map<LocalDate, Integer> wordFrequency = wordFrequencyBatch.searchKeywordFrequency(indexName, keyword, startDate, endDate);
-            return ResponseEntity.ok(wordFrequency);
+            // Splitting the keywords string into a list
+            List<String> keywordList = Arrays.asList(keywords.split(","));
+
+            // Calling the scheduleKeywordCountTask method
+            scheduledTasks.scheduleKeywordCountTask(keywordList, fromIndex, toIndex, startDate, endDate);
+
+            return ResponseEntity.ok("Task scheduled successfully with provided parameters.");
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(); // Consider logging the exception
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

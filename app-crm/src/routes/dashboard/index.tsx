@@ -18,11 +18,12 @@ import {
     DashboardSentimentAnalysisChart
 } from "./components";
 import { DashBoardWordCloudChart } from "./components";
+// import { DashboardBiasAnalysisChart } from "./components";
+
 import { DashboardHighlights } from "./components/highlights";
 import {configurl} from "./components/config";
 import configa from 'config/config'; // Adjust the path as necessary
-
-// import DashBoardWordCloudChart from '/src/routes/dashboard/components';
+// import {DashboardBiasAnalysisChart} from "bias-chart";
 
 export const DashboardPage: React.FC = () => {
     const [selectedElasticIndex, setSelectedElasticIndex] = useState("cnn");
@@ -193,6 +194,7 @@ export const DashboardPage: React.FC = () => {
                 <Col xs={24} sm={24} xl={12}>
                 <DashboardSentimentAnalysisChart
                     sentiment_index={`${selectedElasticIndex}`}
+                    index ="sentiment-analysis-results"
                     term = "Palestine"
                     chart_title="Sentiment Analysis on term 'Palestine' "
                     description="-1 as very Negative and 1 as very Positive"
@@ -202,9 +204,40 @@ export const DashboardPage: React.FC = () => {
                 <Col xs={24} sm={24} xl={8}>
                 <DashboardSentimentAnalysisChart
                     sentiment_index={`${selectedElasticIndex}`}
+                    index ="sentiment-analysis-results"
                     term = "Hamas"
                     chart_title="Sentiment Score on term 'Hamas' "
                     description="-1 as very Negative and 1 as very Positive"
+                />
+
+                </Col>
+
+            </Row>
+
+            <Row gutter={[32, 32]}>
+                {/* <Col xs={24} sm={24} xl={8}>
+                    <DashboardTotalCountCard resource="companies" />
+                </Col>
+                <Col xs={24} sm={24} xl={8}>
+                    <DashboardTotalCountCard resource="contacts" />
+                </Col> */}
+                <Col xs={24} sm={24} xl={12}>
+                <DashboardSentimentAnalysisChart
+                    sentiment_index={`${selectedElasticIndex}`}
+                    index ="bias-analysis-results"
+                    term = "Biden"
+                    chart_title="Bias Analysis on documents about 'Biden' "
+                    description="-1 as progressive left and 1 as progressive right"
+                />
+
+                </Col>
+                <Col xs={24} sm={24} xl={8}>
+                <DashboardSentimentAnalysisChart
+                    sentiment_index={`${selectedElasticIndex}`}
+                    index ="bias-analysis-results"
+                    term = "Hamas"
+                    chart_title="Bias Analysis on documents about 'Hamas' "
+                    description="-1 as progressive left and 1 as progressive right"
                 />
 
                 </Col>

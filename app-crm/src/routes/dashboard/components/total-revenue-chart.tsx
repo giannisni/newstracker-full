@@ -12,8 +12,9 @@ export const DashboardSentimentAnalysisChart: React.FC<{
     chart_title: string;
     description?: string; 
     term: string;
+    index: string;
     sentiment_index:string;// Optional description prop
-}> = ({  chart_title, description, sentiment_index, term }) => {
+}> = ({  chart_title, description, sentiment_index, term,index }) => {
 
 
     const apiUrl = configa.API_URL;
@@ -23,7 +24,7 @@ export const DashboardSentimentAnalysisChart: React.FC<{
         const fetchSentimentScore = async () => {
             const startDate = "2023-01-01";
             const endDate = "2023-12-31";
-            const index = "sentiment-analysis-results";
+            // const index = "sentiment-analysis-results";
             try {
                 // Replace with your actual API endpoint
                 const response = await axios.get(`${apiUrl}api/news/calculate?`, {

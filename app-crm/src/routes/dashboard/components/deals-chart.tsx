@@ -18,7 +18,7 @@ export const DashboardDealsChart: React.FC<{index_name:String, selectedKeyword: 
     const [dealData, setDealData] = useState<DealDataType[]>([]);
     const apiUrl = configa.API_URL;
     const elastic_index = configa.INDEX_NAME;
-    const [selectedElasticIndex, setSelectedElasticIndex] = useState("israeli");
+    const [selectedElasticIndex, setSelectedElasticIndex] = useState(`${selectedKeyword}`);
 
     const handleElasticIndexChange = (value: string) => {
         setSelectedElasticIndex(value);
@@ -82,6 +82,7 @@ export const DashboardDealsChart: React.FC<{index_name:String, selectedKeyword: 
             <Select defaultValue={selectedElasticIndex} style={{ width: 120 }} onChange={handleElasticIndexChange}>
             <Select.Option value="israeli">israeli</Select.Option>
             <Select.Option value="palestine">palestine</Select.Option>
+            <Select.Option value="palestinian">palestinian</Select.Option>
             <Select.Option value="hamas">hamas</Select.Option>
 
             {/* Add other options as needed */}

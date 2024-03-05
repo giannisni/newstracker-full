@@ -62,7 +62,7 @@ export const DashboardPage: React.FC = () => {
                 marginTop: '10px',
                 fontSize: '16px' // Smaller font size for subtitle
             }}>
-                Analyzing CNN and FOX Articles (1 Oct 2023 - 31 Dec 2023)<br/>
+                Analyzing CNN and FOX News Articles  (1 Oct 2023 - 31 Dec 2023)<br/>
                 Focusing on the Israel-Palestine Conflict
             </p>
         </header>

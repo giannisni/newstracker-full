@@ -1,6 +1,6 @@
 
 
-npm run build
+# npm run build
 
 # Copy the build artifacts to the Spring Boot static directory
 cp -R dist/* /Users/ioannisniozas/IdeaProjects/newstracker/newstracker/verse/src/main/resources/static/

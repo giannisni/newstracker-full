@@ -41,7 +41,7 @@ export const DashboardHighlights: React.FC<{index_name:String,keyword1: string, 
 
     const renderHighlights = (documentId: string) => {
         return highlights[documentId]?.slice(0, 4).map((highlight, index: number) => (
-            <p key={index} dangerouslySetInnerHTML={{ __html: highlight }} style={{ marginBottom: '10px' }} />
+            <p key={index} dangerouslySetInnerHTML={{ __html: highlight as unknown as string }} style={{ marginBottom: '10px' }} />
         ));
     };
 

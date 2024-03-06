@@ -1,32 +1,5 @@
 package com.getout.service;
 
-//import co.elastic.clients.elasticsearch.ElasticsearchClient;
-//import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
-//import co.elastic.clients.elasticsearch.core.search.Hit;
-//import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-//import org.apache.http.HttpHost;
-//import org.apache.http.auth.AuthScope;
-//import org.apache.http.auth.UsernamePasswordCredentials;
-//import org.apache.http.client.CredentialsProvider;
-//import org.apache.http.impl.client.BasicCredentialsProvider;
-//import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-//import org.elasticsearch.action.search.SearchRequest;
-//import org.elasticsearch.action.search.SearchResponse;
-//import org.elasticsearch.client.RequestOptions;
-//import org.elasticsearch.client.RestClient;
-//import org.elasticsearch.client.RestClientBuilder;
-//import org.elasticsearch.client.RestHighLevelClient;
-//import org.elasticsearch.index.query.BoolQueryBuilder;
-//import org.elasticsearch.index.query.MatchQueryBuilder;
-//import org.elasticsearch.index.query.QueryBuilders;
-//import org.elasticsearch.index.query.SpanNearQueryBuilder;
-//import org.elasticsearch.search.SearchHit;
-//import org.elasticsearch.search.builder.SearchSourceBuilder;
-//import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-//import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
-//import org.elasticsearch.search.sort.SortOrder;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.stereotype.Service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
@@ -44,11 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;

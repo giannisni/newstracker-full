@@ -6,43 +6,51 @@ import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.getout.util.Constants;
+import com.getout.util.ElasticsearchProperties; // Import your ElasticsearchProperties class
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.apache.http.HttpHost;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.elasticsearch.client.RestClientBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 
 @Configuration
 public class ElasticSearchConfig {
 
 
+
+    private final ElasticsearchProperties elasticsearchProperties;
+
+    @Autowired
+    public ElasticSearchConfig(ElasticsearchProperties elasticsearchProperties) {
+        this.elasticsearchProperties = elasticsearchProperties;
+    }
+
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
         return builder -> builder.failOnUnknownProperties(false);
     }
+
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         return mapper;
     }
+
     @Bean
     public ElasticsearchClient elasticsearchClient() {
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(Constants.ELASTICSEARCH_USERNAME, Constants.ELASTICSEARCH_PASSWORD));
+                new UsernamePasswordCredentials(elasticsearchProperties.getUsername(), elasticsearchProperties.getPassword()));
 
-        RestClient restClient = RestClient.builder(new HttpHost(Constants.elastic_host, Constants.ELASTICSEARCH_PORT, Constants.ELASTICSEARCH_PROTOCOL))
-                .setHttpClientConfigCallback(httpClientBuilder ->
-                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
+        RestClient restClient = RestClient.builder(
+                        new HttpHost(elasticsearchProperties.getHost(), elasticsearchProperties.getPort(), elasticsearchProperties.getProtocol()))
+                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
                 .build();
 
         ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());

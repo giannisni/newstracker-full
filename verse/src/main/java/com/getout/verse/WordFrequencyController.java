@@ -35,7 +35,7 @@ public class WordFrequencyController {
 
     }
 
-    @CrossOrigin(origins = "http://localhost:3000")
+//    @CrossOrigin(origins = "http://localhost:3000")
 
     @GetMapping("/wordcloud")
     public ResponseEntity<List<Map<String, Object>>> getWordCloudData(@RequestParam String indexName) {

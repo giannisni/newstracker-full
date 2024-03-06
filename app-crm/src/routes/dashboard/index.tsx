@@ -214,13 +214,8 @@ export const DashboardPage: React.FC = () => {
 
             </Row>
 
-            <Row gutter={[32, 32]}>
-                {/* <Col xs={24} sm={24} xl={8}>
-                    <DashboardTotalCountCard resource="companies" />
-                </Col>
-                <Col xs={24} sm={24} xl={8}>
-                    <DashboardTotalCountCard resource="contacts" />
-                </Col> */}
+            {/* <Row gutter={[32, 32]}>
+         
                 <Col xs={24} sm={24} xl={12}>
                 <DashboardSentimentAnalysisChart
                     sentiment_index={`${selectedElasticIndex}`}
@@ -242,7 +237,7 @@ export const DashboardPage: React.FC = () => {
 
                 </Col>
 
-            </Row>
+            </Row> */}
 
             <Row gutter={[16, 32]} style={{ marginTop: "32px" }}>
                 <Col

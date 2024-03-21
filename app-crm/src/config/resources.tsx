@@ -48,15 +48,15 @@ export const resources: IResourceItem[] = [
     //         parent: "scrumboard",
     //     },
     // },
-    {
-        name: "taskStages",
-        create: "/scrumboard/kanban/stages/create",
-        edit: "/scrumboard/kanban/stages/edit/:id",
-        list: "/scrumboard/kanban",
-        meta: {
-            hide: true,
-        },
-    },
+    // {
+    //     name: "taskStages",
+    //     create: "/scrumboard/kanban/stages/create",
+    //     edit: "/scrumboard/kanban/stages/edit/:id",
+    //     list: "/scrumboard/kanban",
+    //     meta: {
+    //         hide: true,
+    //     },
+    // },
     // {
     //     name: "deals",
     //     list: "/scrumboard/sales",
@@ -67,24 +67,24 @@ export const resources: IResourceItem[] = [
     //         parent: "scrumboard",
     //     },
     // },
-    {
-        name: "dealStages",
-        create: "/scrumboard/sales/stages/create",
-        edit: "/scrumboard/sales/stages/edit/:id",
-        list: "/scrumboard/sales",
-        meta: {
-            hide: true,
-        },
-    },
-    {
-        name: "deals",
-        identifier: "deals-2",
-        edit: "/scrumboard/sales/details/edit/:id",
-        list: "/scrumboard/sales",
-        meta: {
-            hide: true,
-        },
-    },
+    // {
+    //     name: "dealStages",
+    //     create: "/scrumboard/sales/stages/create",
+    //     edit: "/scrumboard/sales/stages/edit/:id",
+    //     list: "/scrumboard/sales",
+    //     meta: {
+    //         hide: true,
+    //     },
+    // },
+    // {
+    //     name: "deals",
+    //     identifier: "deals-2",
+    //     edit: "/scrumboard/sales/details/edit/:id",
+    //     list: "/scrumboard/sales",
+    //     meta: {
+    //         hide: true,
+    //     },
+    // },
     // {
     //     name: "companies",
     //     list: "/companies",
@@ -96,14 +96,14 @@ export const resources: IResourceItem[] = [
     //         icon: <ShopOutlined />,
     //     },
     // },
-    {
-        name: "companies",
-        identifier: "sales-companies",
-        create: "/scrumboard/sales/create/company/create",
-        meta: {
-            hide: true,
-        },
-    },
+    // {
+    //     name: "companies",
+    //     identifier: "sales-companies",
+    //     create: "/scrumboard/sales/create/company/create",
+    //     meta: {
+    //         hide: true,
+    //     },
+    // },
     // {
     //     name: "contacts",
     //     list: "/contacts",
@@ -115,17 +115,17 @@ export const resources: IResourceItem[] = [
     //         icon: <TeamOutlined />,
     //     },
     // },
-    // {
-    //     name: "quotes",
-    //     list: "/quotes",
-    //     create: "/quotes/create",
-    //     edit: "/quotes/edit/:id",
-    //     show: "/quotes/show/:id",
-    //     meta: {
-    //         label: "Quotes",
-    //         icon: <ContainerOutlined />,
-    //     },
-    // },
+    {
+        name: "quotes",
+        list: "/quotes",
+        create: "/quotes/create",
+        edit: "/quotes/edit/:id",
+        show: "/quotes/show/:id",
+        meta: {
+            label: "Quotes",
+            icon: <ContainerOutlined />,
+        },
+    },
     // {
     //     name: "administration",
     //     meta: {

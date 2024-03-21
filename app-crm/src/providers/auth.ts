@@ -6,21 +6,7 @@ import { API_BASE_URL, API_URL, client, dataProvider } from "./data";
 import { disableAutoLogin, enableAutoLogin } from "@/hooks";
 
 export const emails = [
-    "michael.scott@dundermifflin.com",
-    "jim.halpert@dundermifflin.com",
-    "pam.beesly@dundermifflin.com",
-    "dwight.schrute@dundermifflin.com",
-    "angela.martin@dundermifflin.com",
-    "stanley.hudson@dundermifflin.com",
-    "phyllis.smith@dundermifflin.com",
-    "kevin.malone@dundermifflin.com",
-    "oscar.martinez@dundermifflin.com",
-    "creed.bratton@dundermifflin.com",
-    "meredith.palmer@dundermifflin.com",
-    "ryan.howard@dundermifflin.com",
-    "kelly.kapoor@dundermifflin.com",
-    "andy.bernard@dundermifflin.com",
-    "toby.flenderson@dundermifflin.com",
+    "example@example.com",
 ];
 
 const randomEmail = emails[Math.floor(Math.random() * emails.length)];
@@ -32,6 +18,15 @@ export const demoCredentials = {
 
 export const authProvider: AuthBindings = {
     login: async ({ email, providerName, accessToken, refreshToken }) => {
+
+        // enableAutoLogin(email);
+        // localStorage.setItem("access_token", accessToken);
+        // localStorage.setItem("refresh_token", refreshToken);
+        //     return {
+        //         success: true,
+        //         redirectTo: "/",
+        //     };
+        
         if (accessToken && refreshToken) {
             client.setHeaders({
                 Authorization: `Bearer ${accessToken}`,

@@ -5,7 +5,6 @@ import {
     CompanyDealsTable,
     CompanyInfoForm,
     CompanyNotes,
-    CompanyQuotesTable,
     CompanyTitleForm,
 } from "./components";
 
@@ -19,7 +18,7 @@ export const CompanyEditPage = () => {
                     marginTop: 32,
                 }}
             >
-                <Col span={16}>
+                {/* <Col span={16}>
                     <CompanyContactsTable />
                     <CompanyDealsTable
                         style={{
@@ -36,7 +35,7 @@ export const CompanyEditPage = () => {
                             marginTop: 32,
                         }}
                     />
-                </Col>
+                </Col> */}
                 <Col span={8}>
                     <CompanyInfoForm />
                 </Col>

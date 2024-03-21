@@ -49,6 +49,14 @@ export const DashboardLatestActivities : React.FC<{index_name:String }> = ({ ind
     }, [index_name]);
 
     return (
+        <div style={{ width: '100%', margin: "0px" }}>
+            <style>
+                {`
+                    em {
+                        font-weight: bold;
+                    }
+                `}
+            </style>
         <Card 
         title={
             <Tooltip title="Latest news about Israel-Palestine conflict">
@@ -71,5 +79,5 @@ export const DashboardLatestActivities : React.FC<{index_name:String }> = ({ ind
             ))}
         </div>
     </Card>
-    );
+    </div>);
 };

@@ -26,7 +26,7 @@ export const DashboardTermsPercentageChart: React.FC<{index_name:String,keyword1
                 term4: keyword3,
                 indexName: `${index_name}_articles_newone`,
                 startDate: '2023-01-01',
-                endDate: '2023-12-31'
+                endDate: '2024-12-31'
             }
         })
         .then(response => {

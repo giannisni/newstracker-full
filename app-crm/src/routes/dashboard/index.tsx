@@ -68,7 +68,7 @@ export const DashboardPage: React.FC = () => {
         </header>
         <div>
         <Select defaultValue={selectedElasticIndex} style={{ width: 120 }} onChange={handleElasticIndexChange}>
-                <Select.Option value="cnn">cnn</Select.Option>
+                <Select.Option value="cnn">cnn </Select.Option>
                 <Select.Option value="fox">fox</Select.Option>
                 {/* Add other options as needed */}
             </Select>
@@ -269,19 +269,28 @@ export const DashboardPage: React.FC = () => {
 
 
             <Row
-                gutter={[32, 32]}
-                style={{
-                    marginTop: "82px",
-                }}
-            >
-                <Col xs={24} sm={24} xl={14} xxl={16}>
-
-                    <DashboardLatestActivities index_name={`${selectedElasticIndex}`} />
-                </Col>
-                {/* <Col xs={24} sm={24} xl={10} xxl={8}>
-                    <CalendarUpcomingEvents showGoToListButton />
-                </Col> */}
-            </Row>
+            gutter={[32, 32]}
+            style={{
+                marginTop: "82px",
+            }}
+        >
+                {/* <Col  xs={24} // Full width on extra-small screens
+                    sm={24} // Full width on small screens
+                    md={12} // Half width on medium screens
+                    lg={12} // Half width on large screens
+                    xl={12}>
+                <DashboardLatestActivities index_name={`${selectedElasticIndex}`} />
+            </Col>
+             */}
+            <Col xs={24} sm={24} xl={12} xxl={16}>
+                <DashboardLatestActivities index_name={`${selectedElasticIndex}`} />
+            </Col>
+            
+            {/* If you ever want to include a third column in the future, ensure the total of xl and xxl values does not exceed 24 */}
+            {/* <Col xs={24} sm={24} xl={10} xxl={8}>
+                <CalendarUpcomingEvents showGoToListButton />
+            </Col> */}
+        </Row>
 
             <Row gutter={[32, 32]} style={{ marginTop: "32px" }}>
                 <Col xs={24} sm={24} xl={12} xxl={12}>

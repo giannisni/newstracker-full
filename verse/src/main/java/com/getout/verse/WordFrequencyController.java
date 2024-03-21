@@ -156,6 +156,21 @@ public class WordFrequencyController {
                 }
             }
 
+            @GetMapping("/top-keyword-counts")
+            public Map<LocalDate, Integer> getTopKeywordCounts(
+                    @RequestParam String index,
+                    @RequestParam String keyword,
+                    @RequestParam String startDate,
+                    @RequestParam String endDate) throws IOException {
+
+                LocalDate start = LocalDate.parse(startDate);
+                LocalDate end = LocalDate.parse(endDate);
+
+                // Assuming getKeywordCounts is a method within your service class
+                Map<LocalDate, Integer> keywordCounts = keywordFrequencyService.getKeywordCounts(index, keyword, start, end);
+                return keywordFrequencyService.getTopKeywordCounts(keywordCounts);
+            }
+
             @GetMapping("/calculate")
             public double calculateAverageSentiment(
                     @RequestParam String index,
@@ -187,24 +202,64 @@ public class WordFrequencyController {
 //        }
 //    }
 //
+
+    @GetMapping("/documents-from-top-count-dates")
+    public Map<LocalDate, List<DocumentData>> getDocumentsFromTopCountDates(
+            @RequestParam String index,
+            @RequestParam String keyword,
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam int topicId) throws IOException {
+
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+
+        // Fetch keyword counts and get the top 3 dates
+        Map<LocalDate, Integer> keywordCounts = keywordFrequencyService.getKeywordCounts(index, keyword, start, end);
+        Map<LocalDate, Integer> topKeywordCounts = keywordFrequencyService.getTopKeywordCounts(keywordCounts);
+
+        Map<LocalDate, List<DocumentData>> documentsFromTopDates = new LinkedHashMap<>();
+
+        for (LocalDate date : topKeywordCounts.keySet()) {
+            List<DocumentData> documents = keywordFrequencyService.fetchDocumentsByTopic(date, date, topicId, index);
+
+            // If you need to limit to 2 documents and your fetch method doesn't support limiting
+            if (documents.size() > 2) {
+                documents = documents.subList(0, 2); // Keep only the first 2 documents
+            }
+
+            documentsFromTopDates.put(date, documents);
+        }
+
+        return documentsFromTopDates;
+    }
+
     @GetMapping("/by-topic")
     public ResponseEntity<List<KeywordFrequencyService.DocumentData>> getDocumentsByTopic(
+
+
             @RequestParam int topicId,
             @RequestParam String startDate,
             @RequestParam String endDate,
-            @RequestParam String index) {
+            @RequestParam String index,
+            @RequestParam(required = false) String searchTerm) {
         try {
-
-            System.out.println("Topicindex: "+index);
+            System.out.println("Topicindex: " + index);
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
-            List<KeywordFrequencyService.DocumentData> documents =
-                    keywordFrequencyService.fetchDocumentsByTopic(start, end, topicId, index);
+
+            List<KeywordFrequencyService.DocumentData> documents;
+
+            // Check if searchTerm is present and call the appropriate method
+            if (searchTerm != null && !searchTerm.isEmpty()) {
+                documents = keywordFrequencyService.fetchDocumentsByTopic(start, end, topicId, index, searchTerm);
+            } else {
+                documents = keywordFrequencyService.fetchDocumentsByTopic(start, end, topicId, index);
+            }
 
             return ResponseEntity.ok(documents);
         } catch (Exception e) {
-            // Log the exception for debugging purposes
-            e.printStackTrace();
+            e.printStackTrace(); // Consider using a logger instead of printStackTrace in a real application
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

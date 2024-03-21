@@ -2,11 +2,15 @@ package com.getout.service;
 
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
+
+
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,6 +25,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Service
 public class KeywordFrequencyService {
@@ -129,17 +134,17 @@ public class KeywordFrequencyService {
     public String elasticHost = "localhost";
 
     public double calculateAverageSentiment(String sentiment_index,String index, String term,  LocalDate startDate, LocalDate endDate) throws IOException {
-        System.out.println("startDate: " + startDate);
-        System.out.println("endDate: " + endDate);
-        System.out.println("Index sent: " + sentiment_index);
+//        System.out.println("startDate: " + startDate);
+//        System.out.println("endDate: " + endDate);
+//        System.out.println("Index sent: " + sentiment_index);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         String start = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE); // "yyyy-MM-dd"
         String end = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE); // "yyyy-MM-dd"
 
-        System.out.println("startDate: " + start);
-        System.out.println("endDate: " + end);
+//        System.out.println("startDate: " + start);
+//        System.out.println("endDate: " + end);
 
         SearchResponse<Object> response = elasticsearchClient.search(s -> s
                         .index(sentiment_index)
@@ -171,7 +176,7 @@ public class KeywordFrequencyService {
 
         AtomicReference<Double> totalSentiment = new AtomicReference<>(0.0);
         long docCount = response.hits().total().value();
-        System.out.println("Doc count: "+docCount);
+//        System.out.println("Doc count: "+docCount);
 
         if (docCount > 0) {
             response.hits().hits().forEach(hit -> {
@@ -184,7 +189,7 @@ public class KeywordFrequencyService {
                     } else if (sentimentObj instanceof Integer) {
                         sentiment = ((Integer) sentimentObj).doubleValue();
                     }
-                    System.out.println("sentiment score: " + sentiment);
+//                    System.out.println("sentiment score: " + sentiment);
                     double finalSentiment = sentiment;
                     totalSentiment.updateAndGet(v -> v + finalSentiment);
                 }
@@ -194,7 +199,7 @@ public class KeywordFrequencyService {
             double average = totalSentiment.get() / docCount;
             double result = Math.round(average * 10.0) / 10.0;
 
-            System.out.println("Average sentiment: "+result);
+//            System.out.println("Average sentiment: "+result);
             return result; // Round to 1 decimal place
         }
 
@@ -205,7 +210,7 @@ public class KeywordFrequencyService {
     public Map<LocalDate, Integer> getKeywordCounts(String index, String keyword, LocalDate startDate, LocalDate endDate) throws IOException {
         Map<LocalDate, Integer> keywordCounts = new HashMap<>();
 
-        System.out.println("index : "+ index);
+//        System.out.println("index : "+ index);
 
         // Build the request
         SearchRequest searchRequest = SearchRequest.of(s -> s
@@ -245,7 +250,27 @@ public class KeywordFrequencyService {
         // Close the client
 
         return keywordCounts;
-    }//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+    }
+
+    public static Map<LocalDate, Integer> getTopKeywordCounts(Map<LocalDate, Integer> keywordCounts) {
+        // Sort the map entries by their values (integer counts) in descending order
+        // and limit the results to the top 3 entries
+        Map<LocalDate, Integer> topKeywordCounts = keywordCounts.entrySet()
+                .stream()
+                .sorted(Map.Entry.<LocalDate, Integer>comparingByValue().reversed())
+                .limit(3)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new // Use LinkedHashMap to maintain order
+                ));
+
+        return topKeywordCounts;
+    }
+
+
+    //        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 //        credentialsProvider.setCredentials(AuthScope.ANY,
 //                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
 //
@@ -375,145 +400,20 @@ public class KeywordFrequencyService {
         }
     }
 
-
-//    public static List<DocumentData> fetchDocumentsWithWords(LocalDate startDate, LocalDate endDate,List<String> keywords, String index) throws IOException {
-//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-//        credentialsProvider.setCredentials(AuthScope.ANY,
-//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-//
-//        RestHighLevelClient client = new RestHighLevelClient(
-//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-//                            @Override
-//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-//                            }
-//                        })
-//        );
-//        List<DocumentData> documents = new ArrayList<>();
-//
-//        // Constructing Bool Query for specific topic
-//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-//        boolQuery.must(QueryBuilders.matchPhraseQuery("text", "Israel"))
-////                .must(QueryBuilders.matchPhraseQuery("text", "Palestine"))
-////                .should(QueryBuilders.matchPhraseQuery("text", "Gaza"))
-////                .should(QueryBuilders.matchPhraseQuery("text", "West Bank"))
-//                .must(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate));
-//
-//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//        searchSourceBuilder.query(boolQuery);
-//        searchSourceBuilder.size(10000); // Adjust size as needed
-//
-//        SearchRequest searchRequest = new SearchRequest(index);
-//        searchRequest.source(searchSourceBuilder);
-//
-//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-//
-//        for (SearchHit hit : searchResponse.getHits().getHits()) {
-//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-//            String title = (String) sourceAsMap.get("title");
-//            String date = (String) sourceAsMap.get("published_date");
-//            String url = (String) sourceAsMap.get("url");
-//
-//            documents.add(new DocumentData(title, date, url)); // Storing each document's data
-//        }
-//
-//        client.close();
-//        return documents;
-//    }
-//
-
-
-
-    // Modified Method to fetch keyword frequencies
-//    public static Map<String, Integer> fetchKeywordFrequencies(LocalDate startDate, LocalDate endDate) throws IOException {
-//        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-//        credentialsProvider.setCredentials(AuthScope.ANY,
-//                new UsernamePasswordCredentials(ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD));
-//
-//        System.out.println(ELASTICSEARCH_USERNAME + ELASTICSEARCH_PASSWORD);
-//        RestHighLevelClient client = new RestHighLevelClient(
-//                RestClient.builder(new HttpHost(elastic_host, 443, "https"))
-//                        .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-//                            @Override
-//                            public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-//                                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-//                            }
-//                        })
-//        );
-//        Map<String, Integer> wordFrequencies = new HashMap<>();
-//
-//        // Create a query to fetch documents based on date range
-//        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-//                .must(QueryBuilders.rangeQuery("date_published").gte(startDate).lte(endDate));
-//
-//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//        searchSourceBuilder.query(boolQuery);
-//        searchSourceBuilder.size(10000);  // Adjust size as needed
-//
-//        SearchRequest searchRequest = new SearchRequest("article-index4");
-//        searchRequest.source(searchSourceBuilder);
-//
-//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-//
-//        searchResponse.getHits().forEach(hit -> {
-//            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-//            Object keywordsField = sourceAsMap.get("keywords");
-//            if (keywordsField instanceof List) {
-//                List<String> keywords = (List<String>) keywordsField;
-//                for (String keyword : keywords) {
-//                    wordFrequencies.put(keyword, wordFrequencies.getOrDefault(keyword, 0) + 1);
-//                }
-//            } else {
-//                // Log a warning or handle the case where keywords is not a list
-//                System.out.println("Warning: keywords is not a list in document " + hit.getId());
-//            }
-//        });
-//
-//        client.close();
-//
-//        return wordFrequencies;
-//    }
-
-
+    //generate javadoc for fetchTermPercentages method
     /**
-     * Calculates the correlation coefficient between two sets of keyword counts.
+     * Fetches the percentage of documents containing a given pair of terms from a specified index.
      *
-//     * @param keywordCounts1 The first set of keyword counts.
-//     * @param keywordCounts2 The second set of keyword counts.
-     * @return The correlation coefficient.
+     * @param term1     The first term.
+     * @param term2     The second term.
+     * @param term3     The third term.
+     * @param term4     The fourth term.
+     * @param indexName The name of the Elasticsearch index.
+     * @param startDate The start date of the range.
+     * @param endDate   The end date of the range.
+     * @return A map of term pairs to their respective percentages.
+     * @throws IOException If there's an issue communicating with Elasticsearch.
      */
-
-//    public static double calculateCorrelation(Map<LocalDate, Integer> keywordCounts1, Map<LocalDate, Integer> keywordCounts2) {
-//        // Convert the keyword counts maps to arrays
-//        // Get the common keys (dates) in both maps
-//        Set<LocalDate> commonDates = new HashSet<>(keywordCounts1.keySet());
-//        commonDates.retainAll(keywordCounts2.keySet());
-//
-//        // Filter the maps to only include entries with the common keys
-//        Map<LocalDate, Integer> filteredCounts1 = keywordCounts1.entrySet().stream()
-//                .filter(entry -> commonDates.contains(entry.getKey()))
-//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//        Map<LocalDate, Integer> filteredCounts2 = keywordCounts2.entrySet().stream()
-//                .filter(entry -> commonDates.contains(entry.getKey()))
-//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//
-//        // Convert the filtered maps to arrays
-//        double[] counts1 = filteredCounts1.values().stream().mapToDouble(Integer::doubleValue).toArray();
-//        double[] counts2 = filteredCounts2.values().stream().mapToDouble(Integer::doubleValue).toArray();
-//
-//        // Calculate the correlation coefficient
-//        PearsonsCorrelation pearsonsCorrelation = new PearsonsCorrelation();
-//        double correlation = pearsonsCorrelation.correlation(counts1, counts2);
-//
-//        // Format the correlation
-//        DecimalFormat df = new DecimalFormat("#.##");
-//        correlation = Double.valueOf(df.format(correlation));
-//
-//        return correlation;
-//
-//    }
-
     public Map<String, Float> fetchTermPercentages(
             String term1, String term2, String term3, String term4,
             String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
@@ -530,6 +430,19 @@ public class KeywordFrequencyService {
                 term3 + " " + term4, percentage2
         );
     }
+
+    //generate javadoc for executeCountQuery method
+    /**
+     * Executes a count query for a given pair of terms from a specified index.
+     *
+     * @param term1     The first term.
+     * @param term2     The second term.
+     * @param indexName The name of the Elasticsearch index.
+     * @param startDate The start date of the range.
+     * @param endDate   The end date of the range.
+     * @return The count of documents containing the given pair of terms.
+     * @throws IOException If there's an issue communicating with Elasticsearch.
+     */
 
     private long executeCountQuery(String term1, String term2, String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
         SpanTermQuery termQuery1 = SpanTermQuery.of(st -> st.field("text").value(term1));
@@ -560,6 +473,18 @@ public class KeywordFrequencyService {
 
         return countResponse.count();
     }//
+
+    /**
+     * Fetches highlights for a given pair of terms from a specified index.
+     *
+     * @param term1     The first term.
+     * @param term2     The second term.
+     * @param indexName The name of the Elasticsearch index.
+     * @param startDate The start date of the range.
+     * @param endDate   The end date of the range.
+     * @return A map of document IDs to lists of highlights.
+     * @throws IOException If there's an issue communicating with Elasticsearch.
+     */
     public Map<String, List<String>> fetchHighlights(String term1, String term2, String indexName, LocalDate startDate, LocalDate endDate) throws IOException {
         Map<String, List<String>> highlights = new HashMap<>();
 
@@ -674,14 +599,76 @@ public class KeywordFrequencyService {
         }
     }
 
+    //Adjust an Elasticsearch service method in Java to include an optional search term for the title field using the Elasticsearch Java client 8.7.0, ensuring compatibility with the method's access modifiers and correctly constructing the conditional query logic
+    public List<DocumentData> fetchDocumentsByTopic(LocalDate startDate, LocalDate endDate, int topicId, String index,String searchTerm) throws IOException {
+
+        List<DocumentData> documents = new ArrayList<>();
+        HashSet<String> uniqueUrls = new HashSet<>();
+
+        try {
+
+            SearchResponse<Document> response = elasticsearchClient.search(s -> s
+                            .index(index)
+                            .query(q -> q
+                                    .bool(b -> b
+                                            .must(m -> m
+                                                    .term(t -> t
+                                                            .field("topic")
+                                                            .value(topicId) // Corrected line
+                                                    )
+                                            )
+                                            .must(m -> m
+                                                    .match(t -> t
+                                                            .field("document")
+                                                                    .query(searchTerm)
+                                                             // Corrected line
+                                                    )
+                                            )
+                                            .must(m -> m
+                                                    .range(r -> r
+                                                            .field("published_date")
+                                                            .gte(JsonData.of(startDate.toString())) // Keep using JsonData.of() with LocalDate.toString()
+                                                            .lte(JsonData.of(endDate.toString()))
+                                                    )
+                                            )
+                                    )
+                            )
+                            .size(10000), // Adjust size as needed
+                    Document.class
+            );
+
+
+            // Parsing the response
+            for (Hit<Document> hit : response.hits().hits()) {
+                Document doc = hit.source();
+                String title = doc.getTitle();
+                String date = doc.getPublishedDate();
+                String url = doc.getUrl();
+
+                if (uniqueUrls.add(title)) {
+                    documents.add(new DocumentData(title, date, url));
+//                    System.out.println("Document url:"+ doc.getUrl());
+
+                }
+
+
+            }
+
+            return documents;
+
+
+        } finally {
+
+        }
+    }
+
+
     public List<DocumentData> fetchDocumentsByTopic(LocalDate startDate, LocalDate endDate, int topicId, String index) throws IOException {
 
         List<DocumentData> documents = new ArrayList<>();
-
+        HashSet<String> uniqueUrls = new HashSet<>();
         try {
-            // Constructing the query
-            // Constructing the query
-            // Constructing the query
+
             SearchResponse<Document> response = elasticsearchClient.search(s -> s
                             .index(index)
                             .query(q -> q
@@ -705,7 +692,6 @@ public class KeywordFrequencyService {
                     Document.class
             );
 
-//            System.out.println("response:"+ response);
 
             // Parsing the response
             for (Hit<Document> hit : response.hits().hits()) {
@@ -714,7 +700,13 @@ public class KeywordFrequencyService {
                 String date = doc.getPublishedDate();
                 String url = doc.getUrl();
 
-                documents.add(new DocumentData(title, date, url)); // Storing each document's data
+                if (uniqueUrls.add(url)) {
+                    documents.add(new DocumentData(title, date, url));
+//                                    System.out.println("Document url:"+ doc.getUrl());
+
+                }
+
+
             }
 
             return documents;
@@ -725,18 +717,12 @@ public class KeywordFrequencyService {
         }
     }
 
+    //Rewrite the above function to include an optional search term for the title field using the Elasticsearch Java client 8.7.0, ensuring compatibility with the method's access modifiers and correctly constructing the conditional query logic.
+//    public List<DocumentData> rewrite
 
 
-    /**
-     * Predicts the keyword count for a given keyword based on the correlation with another keyword.
-     *
-     * @param keyword1   The first keyword.
-     * @param keyword2   The second keyword.
-     * @param startDate  The start date of the range.
-     * @param endDate    The end date of the range.
-     * @return The predicted keyword count.
-     * @throws IOException, InterruptedException If there's an issue executing the Python script or reading its output.
-     */
+//    private int calculateDaysBetweenDates(Date date1,
+
 //    public static int predictKeywordCount(String keyword1, String keyword2, LocalDate startDate, LocalDate endDate) throws IOException, InterruptedException {
 //        // Calculate keyword counts maps
 //        Map<LocalDate, Integer> keywordCountsMap1 = getKeywordCounts(keyword1, startDate, endDate);

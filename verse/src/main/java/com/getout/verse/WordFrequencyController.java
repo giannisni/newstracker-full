@@ -244,7 +244,7 @@ public class WordFrequencyController {
             @RequestParam String index,
             @RequestParam(required = false) String searchTerm) {
         try {
-            System.out.println("Topicindex: " + index);
+//            System.out.println("Topicindex: " + index);
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 

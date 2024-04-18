@@ -19,6 +19,25 @@ export const resources: IResourceItem[] = [
             icon: <DashboardOutlined />,
         },
     },
+    {
+        name: "articles",
+        list: "/articles",
+        create: "/quotes/create",
+        edit: "/quotes/edit/:id",
+        show: "/quotes/show/:id",
+        meta: {
+            label: "Articles",
+            icon: <ContainerOutlined />,
+        },
+    },
+    {
+        name: "about",
+        list: "/about",
+        meta: {
+            label: "About",
+            icon: <DashboardOutlined />,
+        },
+    },
     // {
     //     name: "events",
     //     list: "/calendar",
@@ -115,17 +134,8 @@ export const resources: IResourceItem[] = [
     //         icon: <TeamOutlined />,
     //     },
     // },
-    {
-        name: "quotes",
-        list: "/quotes",
-        create: "/quotes/create",
-        edit: "/quotes/edit/:id",
-        show: "/quotes/show/:id",
-        meta: {
-            label: "Quotes",
-            icon: <ContainerOutlined />,
-        },
-    },
+   
+    
     // {
     //     name: "administration",
     //     meta: {

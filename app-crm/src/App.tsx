@@ -46,6 +46,8 @@ import {
 import { DashboardPage } from "./routes/dashboard";
 import { ForgotPasswordPage } from "./routes/forgot-password";
 import { LoginPage } from "./routes/login";
+import AboutPage from "./routes/about"; // Import the AboutPage component
+
 import {
     QuotesCreatePage,
     QuotesEditPage,
@@ -145,6 +147,8 @@ const App: React.FC = () => {
                                                 element={<CalendarCreatePage />}
                                             />
                                         </Route>
+                                        <Route path="/about" element={<AboutPage />} />  // Add the About page route
+
                                         <Route
                                             path="/scrumboard"
                                             element={<Outlet />}
@@ -276,7 +280,7 @@ const App: React.FC = () => {
                                             </Route>
                                         </Route>
                                         <Route
-                                            path="/quotes"
+                                            path="/articles"
                                             element={
                                                 <QuotesListPage>
                                                     <Outlet />

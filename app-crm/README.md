@@ -1,82 +1,82 @@
-[![Cover Image](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/CRM/crm-readme-temp.png "Cover Image")](https://github.com/refinedev/refine)
+# Refine Dashboard App - Front End
 
-<div align="center">
-    <a href="https://refine.dev">Home Page</a> |
-    <a href="https://discord.gg/refine">Discord</a> |
-    <a href="https://refine.dev/examples/">Examples</a> |
-    <a href="https://refine.dev/blog/">Blog</a> |
-    <a href="https://refine.dev/docs/">Documentation</a>
-</div>
-</div>
+This document outlines the structure and components of the front end for the Refine Dashboard app, providing insights into the various charts and metrics displayed.
 
-<br />
-<br />
+## Main Files
 
-<div align="center">Build your React-based internal tools, admin panels, dashboards, B2B apps with flexibility in mind.<br>An open source, headless web application framework developed with flexibility in mind.
+### Index First Page
 
-<br />
-<br />
+- **Location**: `app-crm/src/routes/dashboard/index.tsx`
+- **Description**: This is the entry point for the dashboard, where the overall layout and integration of components are defined.
 
-[![Discord](https://img.shields.io/discord/837692625737613362.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/refine)
-[![Twitter Follow](https://img.shields.io/twitter/follow/refine_dev?style=social)](https://twitter.com/refine_dev)
+## Dashboard Components
 
-<a href="https://www.producthunt.com/posts/refine-3?utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-refine&#0045;3" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=362220&theme=light&period=daily" alt="refine - 100&#0037;&#0032;open&#0032;source&#0032;React&#0032;framework&#0032;to&#0032;build&#0032;web&#0032;apps&#0032;3x&#0032;faster | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+### Topics Pie Chart
 
-</div>
+- **File**: `app-crm/src/routes/dashboard/components/tasks-chart.tsx`
+- **Description**: Displays a pie chart representing the distribution of various topics.
 
-## About
+### Sentiment Analysis Chart
 
-⭐ Check out the live demo of the application [here](https://example.crm.refine.dev/).
+- **File**: `app-crm/src/routes/dashboard/components/bias-chart.tsx`
+- **Description**: A chart that analyzes and visualizes sentiment trends within the data.
 
-This is a complete CRM (Customer Relationship Management) example project built using [refine](https://refine.dev/) and [Ant Design](https://ant.design/). It provides a set of tools and features to manage customer data, track interactions, and streamline business processes.
+### Keyword Count Chart
 
-The application includes features such as dashboard analytics, a calendar for scheduling appointments, a scrum board for task management, and CRUD operations for managing companies, contacts, and quotes.
+- **File**: `app-crm/src/routes/dashboard/components/deals-chart.tsx`
+- **Description**: Visualizes the count of specific keywords across different datasets or timeframes.
 
-refine is a React-based powerful framework for building low-code applications. It is primarily focused on implementing data-heavy apps such as internal tools, dashboards, admin panels, and storefronts. It comes with a core package that segregates app concerns like data handling, authentication, access control, etc., into React contexts. It also supports integration with industry standard backend systems such and UI frameworks. It is highly customizable and extensible.
+### Highlights Chart
 
-## Features
+- **File**: `app-crm/src/routes/dashboard/components/highlights.tsx`
+- **Description**: Summarizes key insights or highlights from the data analysis.
 
-**Dashboard**: Gain insights into your business with interactive charts and analytics.
+### Terms Percentage Chart Related to "Genocide"
 
-**Calendar**: Schedule and manage appointments, meetings, and events.
+- **File**: `app-crm/src/routes/dashboard/components/percentage-chart.tsx`
+- **Description**: Shows the percentage of terms used in relation to the term "genocide".
 
-**Scrumboard**: Organize and track tasks using a Kanban-style board.
+### Terms Percentage in Relation to Another
 
-**Companies**: Create, update, and delete company records.
+- **File**: `app-crm\src\routes\dashboard\components\percentage-keyword.tsx`
+- **Description**: Visualizes the percentage of one term in relation to another selected term.
 
-**Contacts**: Manage your customer contacts efficiently.
+### Wordcloud Chart
 
-**Quotes**: Generate and manage quotes for your clients.
+- **File**: `app-crm/src/routes/dashboard/components/word-cloud.tsx`
+- **Description**: A word cloud that displays the prominence of words based on their frequency or significance in the dataset.
 
-**Administration**: Configure application settings and user roles.
+## Configuration
 
-<br>
+### API URL and Index Configuration
 
-![Product Edit Page](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/dashboard.png "Product Edit Page")
+- **File**: `app-crm/src/config/config.ts`
+- **Description**: This file contains the configuration settings for the API URL and other global settings that affect the entire application.
 
-<br>
+## Future Work
 
-![Dashboard Page](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/companies.png "Dashboard Page")
+### Authentication
 
-<br>
+- **Login and Register**: Implement user authentication workflows for login and registration. This includes setting up secure user accounts and managing sessions.
 
-![Product List Page](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/contacts.png "Product List Page")
+### React Hooks
 
-<br>
+- **Hooks Instead of REST Calls**: Transition from traditional REST API calls to using React Hooks for data fetching and state management. This will make the app more efficient and the codebase cleaner.
 
-![Product Edit Page](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/sales-pipeline.png "Product Edit Page")
-<br>
+### Check Refine Documentation
 
-![Product Edit Page](https://refine.ams3.cdn.digitaloceanspaces.com/example-readmes/login.png "Product Edit Page")
+- **Refine.dev Data Provider**: Explore the use of Refine's data provider hooks to streamline data interactions. More details can be found in the Refine documentation:
+    - [Refine Data Provider Documentation](https://refine.dev/docs/data/data-provider/)
 
-## Try this example on your local
+### Dashboard Redesign
+
+- **Complete Redesign**: Consider a complete overhaul of the dashboard design and functionality based on user feedback and new requirements. This might include changing the layout, adding new features, or enhancing existing ones to improve user experience and data visualization.
+
+# Running the Application
+
+## Start Command
+
+To start the development server and launch the application in a development environment, use the following command:
 
 ```bash
-npm create refine-app@latest -- --example app-crm
-```
-
-## Try this example on CodeSandbox
-
-<br/>
-
-[![Open app-crm example from refine](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/embed/github/refinedev/refine/tree/master/examples/app-crm?view=preview&theme=dark&codemirror=1)
+npm run start

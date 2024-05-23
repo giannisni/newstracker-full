@@ -1,6 +1,8 @@
 package com.getout.verse;
 
 import com.getout.component.ScheduledTasks;
+import com.getout.model.DocumentData;
+import com.getout.model.OpenAIData;
 import com.getout.service.TweetMetricsService;
 import com.getout.service.WordFrequencyBatch;
 import com.getout.service.KeywordFrequencyService;
@@ -56,7 +58,7 @@ public class WordFrequencyController {
     @GetMapping("/openai-data")
     public ResponseEntity<?> getOpenAIData(@RequestParam String indexName) {
         try {
-            List<KeywordFrequencyService.OpenAIData> openAIDataList = keywordFrequencyService.fetchOpenAIData(indexName); // Use the injected service
+            List<OpenAIData> openAIDataList = keywordFrequencyService.fetchOpenAIData(indexName); // Use the injected service
             return ResponseEntity.ok(openAIDataList);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.singletonMap("error", e.getMessage()));
@@ -235,7 +237,7 @@ public class WordFrequencyController {
     }
 
     @GetMapping("/by-topic")
-    public ResponseEntity<List<KeywordFrequencyService.DocumentData>> getDocumentsByTopic(
+    public ResponseEntity<List<DocumentData>> getDocumentsByTopic(
 
 
             @RequestParam int topicId,
@@ -248,7 +250,7 @@ public class WordFrequencyController {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 
-            List<KeywordFrequencyService.DocumentData> documents;
+            List<DocumentData> documents;
 
             // Check if searchTerm is present and call the appropriate method
             if (searchTerm != null && !searchTerm.isEmpty()) {

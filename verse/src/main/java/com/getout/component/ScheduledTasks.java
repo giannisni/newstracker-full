@@ -39,12 +39,6 @@ public class ScheduledTasks {
     public void scheduleKeywordCountTask( List<String> keywords,String fromIndex,String toIndex, String startDate, String endDate ) {
 
 
-        System.out.println("Index = " + fromIndex);
-        System.out.println("Keywords = " + keywords);
-
-        System.out.println("EndIndex = " + toIndex);
-        System.out.println("startDate =  " + startDate);
-        System.out.println("endDate =  " + endDate);
         ExecutorService executorService = Executors.newFixedThreadPool(4);
         List<Future<KeywordResult>> futures = new ArrayList<>();
 

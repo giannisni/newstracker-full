@@ -1,49 +1,13 @@
 package com.getout.service;
-//
-//import java.io.IOException;
-//import java.time.LocalDate;
-//import java.time.format.DateTimeFormatter;
-//import java.time.format.DateTimeFormatterBuilder;
-//import java.time.temporal.ChronoField;
-//import java.util.*;
-//import java.util.concurrent.*;
-//import java.util.logging.Logger;
-//import java.util.concurrent.atomic.AtomicInteger;
-//import co.elastic.clients.elasticsearch.ElasticsearchClient;
-//import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-//import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-//import co.elastic.clients.elasticsearch._types.SortOrder;
-//import co.elastic.clients.elasticsearch.ElasticsearchClient;
-//import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
-//import co.elastic.clients.json.JsonData;
-//import org.apache.http.HttpHost;
-//import org.elasticsearch.action.search.*;
-//import org.elasticsearch.client.RequestOptions;
-//import org.elasticsearch.client.RestClient;
-//import org.elasticsearch.client.RestHighLevelClient;
-//import org.elasticsearch.core.TimeValue;
-//import org.elasticsearch.index.query.BoolQueryBuilder;
-//import org.elasticsearch.index.query.QueryBuilders;
-//import org.elasticsearch.search.Scroll;
-//import org.elasticsearch.search.SearchHit;
-//import org.elasticsearch.search.SearchHits;
-//import org.elasticsearch.search.builder.SearchSourceBuilder;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.stereotype.Service;
-//import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.json.JsonData;
 import com.getout.model.Document;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortOrder;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -58,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-import static com.getout.util.Constants.elastic_host;
 
 @Service
 public class WordFrequencyBatch {
@@ -71,33 +34,6 @@ public class WordFrequencyBatch {
         this.client = client;
     }
 
-    private static final Map<Character, String> greekToGreeklishMap = new HashMap<Character, String>() {{
-        put('α', "a"); put('Α', "A");
-        put('β', "v"); put('Β', "V");
-        put('γ', "g"); put('Γ', "G");
-        put('δ', "d"); put('Δ', "D");
-        put('ε', "e"); put('Ε', "E");
-        put('ζ', "z"); put('Ζ', "Z");
-        put('η', "i"); put('Η', "H");
-        put('θ', "th"); put('Θ', "Th");
-        put('ι', "i"); put('Ι', "I");
-        put('κ', "k"); put('Κ', "K");
-        put('λ', "l"); put('Λ', "L");
-        put('μ', "m"); put('Μ', "M");
-        put('ν', "n"); put('Ν', "N");
-        put('ξ', "x"); put('Ξ', "X");
-        put('ο', "o"); put('Ο', "O");
-        put('π', "p"); put('Π', "P");
-        put('ρ', "r"); put('Ρ', "R");
-        put('σ', "s"); put('ς', "s"); put('Σ', "S");
-        put('τ', "t"); put('Τ', "T");
-        put('υ', "y"); put('Υ', "Y");
-        put('φ', "f"); put('Φ', "F");
-        put('χ', "x"); put('Χ', "X");
-        put('ψ', "ps"); put('Ψ', "Ps");
-        put('ω', "o"); put('Ω', "O");
-    }};
-    private static final Logger logger = Logger.getLogger(WordFrequencyBatch.class.getName());
 
     /**
      * Searches for the frequency of given keywords within a specified date range in an Elasticsearch index.
@@ -272,7 +208,6 @@ public class WordFrequencyBatch {
 
 
     public Map<LocalDate, Integer> searchKeywordFrequency(String indexName,String toIndex, String keyword, String startDate, String endDate) throws IOException, InterruptedException {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         Map<LocalDate, Integer> dateFrequencyMap = new ConcurrentHashMap<>();
 
 
@@ -355,201 +290,7 @@ public class WordFrequencyBatch {
     }
 
 
-//    public static Map<LocalDate, Integer> searchKeywordFrequency(String indexName,String toindex, String keyword, int batchSize, String startDate, String endDate) throws IOException, InterruptedException, ExecutionException {
-//        long overallStartTime = System.currentTimeMillis();
-//
-//        // Initialize Elasticsearch client
-//        RestHighLevelClient client = new RestHighLevelClient(
-//                RestClient.builder(new HttpHost(elastic_host, 9200, "http")));
-//
-//        System.out.println("keyword : " + keyword);
-//        // Define date formatter for parsing dates from Elasticsearch
-//        DateTimeFormatter formatterWithZone = new DateTimeFormatterBuilder()
-//                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
-//                .optionalStart()
-//                .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
-//                .optionalEnd()
-//                .appendOffset("+HH:MM", "Z")
-//                .toFormatter();
-//
-//        DateTimeFormatter formatterWithoutZone = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-//
-//        DateTimeFormatter combinedFormatter = new DateTimeFormatterBuilder()
-//                .appendOptional(formatterWithZone)
-//                .appendOptional(formatterWithoutZone)
-//                .toFormatter();
-//
-//
-//        Map<LocalDate, Integer> dateFrequencyMap = new ConcurrentHashMap<>();
-//
-//        // Build the search query
-//        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-//                .query(QueryBuilders.boolQuery()
-//                        .must(QueryBuilders.matchQuery("text", keyword))
-//                        .filter(QueryBuilders.existsQuery("published_date"))
-//                        .filter(QueryBuilders.rangeQuery("published_date").gte(startDate).lte(endDate)))
-//                .size(batchSize);
-//
-//        // Initialize scroll for batch processing
-//        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-//        SearchRequest searchRequest = new SearchRequest(indexName).scroll(scroll).source(searchSourceBuilder);
-//
-//        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-//        String scrollId = searchResponse.getScrollId();
-//        SearchHits hits = searchResponse.getHits();
-//        final long totalHits = hits.getTotalHits().value;
-//        SearchHit[] searchHits = hits.getHits();
-//        System.out.println(searchHits);
-//        // Create a fixed thread pool for concurrent processing
-//        int numberOfThreads = 4;
-//        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-//
-//        // Process search results in batches using scroll
-//        while (searchHits != null && searchHits.length > 0) {
-//            List<Future<Void>> futures = new ArrayList<>();
-//
-//            for (SearchHit hit : searchHits) {
-//                Callable<Void> task = () -> {
-//                    int currentProcessedHits = processedHits.incrementAndGet();
-//                    logger.info("Total processed hits: " + currentProcessedHits + " / " + totalHits);
-//
-//                    Object publishedDateObj = hit.getSourceAsMap().get("published_date");
-//                    LocalDate date = extractDate(publishedDateObj, combinedFormatter);
-//
-//                    String content = hit.getSourceAsMap().get("text").toString();
-//
-////                    System.out.println("Content: " + content);
-//                    List<String> keywordList = Collections.singletonList(keyword);
-//                    System.out.println("KeywordList: " + keywordList);
-//                    int frequency = countKeywordFrequency(content, keywordList);
-//                    System.out.println("Frequency: " + frequency);
-//
-//                    dateFrequencyMap.merge(date, frequency, Integer::sum);
-//
-//                    return null;
-//                };
-//
-//                futures.add(executorService.submit(task));
-//            }
-//
-//            for (Future<Void> future : futures) {
-//                future.get();
-//            }
-//
-//            // Fetch the next batch of search results
-//            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
-//            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-//            scrollId = searchResponse.getScrollId();
-//            searchHits = searchResponse.getHits().getHits();
-//        }
-//
-//        executorService.shutdown();
-//
-//        // Clear the scroll context
-//        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-//        clearScrollRequest.addScrollId(scrollId);
-//        client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-//
-//        client.close();
-//
-//
-//        // Sort the map by date
-//        Map<LocalDate, Integer> sortedMap = new TreeMap<>(dateFrequencyMap);
-//
-//        indexSortedMap(toindex, sortedMap, keyword, indexName);
-//
-//        long overallElapsedTimeMillis = System.currentTimeMillis() - overallStartTime;
-//        double overallElapsedTimeSec = overallElapsedTimeMillis / 1000.0;
-//        System.out.printf("Total Elapsed time: %.3f seconds%n", overallElapsedTimeSec);
-//
-//        System.out.println(keyword + " sorted");
-//        return sortedMap;
-//    }
 
-
-    static class MyDocumentClass {
-        private String text;
-        private String publishedDate;
-        private String date; // Instead of LocalDate
-
-        public List<String> getAuthors() {
-            return authors;
-        }
-
-        public void setAuthors(List<String> authors) {
-            this.authors = authors;
-        }
-
-        private List<String> authors;
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        private String title;
-
-        private String keyword; // Add this field
-
-        public String getIndex() {
-            return index;
-        }
-
-        public void setIndex(String index) {
-            this.index = index;
-        }
-
-        private String index; // Add this field
-
-        private Integer value;
-        // Getters and setters
-        public String getText() {
-            return text;
-        }
-
-        public String getKeyword() {
-            return keyword;
-        }
-
-        public void setKeyword(String keyword) {
-            this.keyword = keyword;
-        }
-
-        public void setText(String text) {
-            this.text = text;
-        }
-
-        public String getPublishedDate() {
-            return publishedDate;
-        }
-
-        public void setPublishedDate(String publishedDate) {
-            this.publishedDate = publishedDate;
-        }
-        public LocalDate getLocalDate() {
-            return LocalDate.parse(date);
-        }
-
-        public String getDate() {
-            return date;
-        }
-
-        public void setDate(String date) {
-            this.date = date;
-        }
-
-        public Integer getValue() {
-            return value;
-        }
-
-        public void setValue(Integer value) {
-            this.value = value;
-        }
-
-
-    }
 
 
 

@@ -29,7 +29,7 @@ export const CurrentUser: React.FC = () => {
                     padding: "12px 20px",
                 }}
             >
-                {user?.name}
+                User
             </Text>
             <div
                 style={{
@@ -40,7 +40,7 @@ export const CurrentUser: React.FC = () => {
                     gap: "4px",
                 }}
             >
-                <Button
+                {/* <Button
                     style={{ textAlign: "left" }}
                     icon={<SettingOutlined />}
                     type="text"
@@ -48,7 +48,7 @@ export const CurrentUser: React.FC = () => {
                     onClick={() => setOpened(true)}
                 >
                     Account settings
-                </Button>
+                </Button> */}
                 <Button
                     style={{ textAlign: "left" }}
                     icon={<LogoutOutlined />}
@@ -73,7 +73,7 @@ export const CurrentUser: React.FC = () => {
                 overlayStyle={{ zIndex: 999 }}
             >
                 <CustomAvatar
-                    name={user?.name}
+                    name="User"
                     src={user?.avatarUrl}
                     size="default"
                     style={{ cursor: "pointer" }}
@@ -83,7 +83,7 @@ export const CurrentUser: React.FC = () => {
                 <AccountSettings
                     opened={opened}
                     setOpened={setOpened}
-                    userId={user.id}
+                    userId="User"
                 />
             )}
         </>

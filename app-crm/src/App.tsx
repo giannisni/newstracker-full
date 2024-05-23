@@ -17,12 +17,13 @@ import "./utilities/init-dayjs";
 
 import { resources, themeConfig } from "@/config";
 import {
-    authProvider,
+    // authProvider,
     dataProvider,
     indexName,
     liveProvider,
     searchClient,
 } from "@/providers";
+
 
 import { FullScreenLoading, Layout } from "./components";
 import { AuditLogPage, SettingsPage } from "./routes/administration";
@@ -45,6 +46,8 @@ import {
 import { DashboardPage } from "./routes/dashboard";
 import { ForgotPasswordPage } from "./routes/forgot-password";
 import { LoginPage } from "./routes/login";
+import AboutPage from "./routes/about"; // Import the AboutPage component
+
 import {
     QuotesCreatePage,
     QuotesEditPage,
@@ -78,11 +81,11 @@ import "./styles/index.css";
 const App: React.FC = () => {
     // This hook is used to automatically login the user.
     // We use this hook to skip the login page and demonstrate the application more quickly.
-    const { loading } = useAutoLoginForDemo();
+    // const { loading } = useAutoLoginForDemo();
 
-    if (loading) {
-        return <FullScreenLoading />;
-    }
+    // if (loading) {
+    //     return <FullScreenLoading />;
+    // }
 
     return (
         <InstantSearch searchClient={searchClient} indexName={indexName}>
@@ -144,6 +147,8 @@ const App: React.FC = () => {
                                                 element={<CalendarCreatePage />}
                                             />
                                         </Route>
+                                        <Route path="/about" element={<AboutPage />} />  // Add the About page route
+
                                         <Route
                                             path="/scrumboard"
                                             element={<Outlet />}
@@ -275,7 +280,7 @@ const App: React.FC = () => {
                                             </Route>
                                         </Route>
                                         <Route
-                                            path="/quotes"
+                                            path="/articles"
                                             element={
                                                 <QuotesListPage>
                                                     <Outlet />
@@ -349,7 +354,7 @@ const App: React.FC = () => {
                                             </Authenticated>
                                         }
                                     >
-                                        {/* <Route
+                                        <Route
                                             path="/login"
                                             element={<LoginPage />}
                                         />
@@ -364,7 +369,7 @@ const App: React.FC = () => {
                                         <Route
                                             path="/update-password"
                                             element={<UpdatePasswordPage />}
-                                        /> */}
+                                        />
                                     </Route>
                                 </Routes>
                                 <UnsavedChangesNotifier />

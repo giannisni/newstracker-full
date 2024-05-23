@@ -84,6 +84,8 @@ export const DashboardDealsChart: React.FC<{index_name:String, selectedKeyword: 
             <Select.Option value="palestine">palestine</Select.Option>
             <Select.Option value="palestinian">palestinian</Select.Option>
             <Select.Option value="hamas">hamas</Select.Option>
+            <Select.Option value="bitcoin">bitcoin</Select.Option>
+
 
             {/* Add other options as needed */}
         </Select>

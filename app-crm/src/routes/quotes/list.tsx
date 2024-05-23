@@ -1,340 +1,137 @@
-import { FC, PropsWithChildren } from "react";
-
-import {
-    DeleteButton,
-    EditButton,
-    FilterDropdown,
-    getDefaultSortOrder,
-    List,
-    ShowButton,
-    useSelect,
-    useTable,
-} from "@refinedev/antd";
-import { getDefaultFilter, HttpError } from "@refinedev/core";
-
+import React, {ReactNode, useEffect, useState } from "react";
+import axios from "axios";
+import { Table, Space, Input, Form, Button, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { Form, Grid, Input, Select, Space, Spin, Table } from "antd";
-import dayjs from "dayjs";
-import debounce from "lodash/debounce";
+import config from 'config/config';
+import './custom.css';
 
-import {
-    CustomAvatar,
-    ListTitleButton,
-    PaginationTotal,
-    Participants,
-    QuoteStatusTag,
-    Text,
-} from "@/components";
-import { Quote, QuoteStatus } from "@/interfaces";
-import { currencyNumber } from "@/utilities";
+// Define the structure of your Elasticsearch document
+interface ElasticsearchDocument {
+  title: string;
+  published_date: string;
+  authors: string[];
+  url: string;
+}
+interface QuotesListPageProps {
+    children?: ReactNode; // If you intend to accept children, you need to define it in your props
+  }
 
-const statusOptions: { label: string; value: QuoteStatus }[] = [
-    {
-        label: "Draft",
-        value: "DRAFT",
-    },
-    {
-        label: "Sent",
-        value: "SENT",
-    },
-    {
-        label: "Accepted",
-        value: "ACCEPTED",
-    },
-];
+  export const QuotesListPage: React.FC<QuotesListPageProps> = ({ children }) => {
+    const [documents, setDocuments] = useState<ElasticsearchDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedElasticIndex, setSelectedElasticIndex] = useState("cnn");
+  const [topicId, setTopicId] = useState(3);
 
-export const QuotesListPage: FC<PropsWithChildren> = ({ children }) => {
-    const screens = Grid.useBreakpoint();
-
-    const { tableProps, searchFormProps, filters, sorters, tableQueryResult } =
-        useTable<Quote, HttpError, { title: string }>({
-            resource: "quotes",
-            onSearch: (values) => {
-                return [
-                    {
-                        field: "title",
-                        operator: "contains",
-                        value: values.title,
-                    },
-                ];
-            },
-            filters: {
-                initial: [
-                    {
-                        field: "title",
-                        value: "",
-                        operator: "contains",
-                    },
-                    {
-                        field: "status",
-                        value: undefined,
-                        operator: "in",
-                    },
-                ],
-            },
-            sorters: {
-                initial: [
-                    {
-                        field: "createdAt",
-                        order: "desc",
-                    },
-                ],
-            },
-            meta: {
-                fields: [
-                    "id",
-                    "title",
-                    "status",
-                    "total",
-                    "createdAt",
-                    { company: ["id", "name", "avatarUrl"] },
-                    { contact: ["id", "name", "avatarUrl"] },
-                    { salesOwner: ["id", "name", "avatarUrl"] },
-                ],
-            },
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      const apiUrl = config.API_URL;
+      setLoading(true);
+      try {
+        const response = await axios.get(`${apiUrl}api/news/by-topic`, {
+          params: {
+            startDate: '2023-01-01',
+            endDate: '2023-12-31',
+            topicId: topicId,
+            index: `${selectedElasticIndex}_articles_new_news_topics`,
+            searchTerm: searchTerm
+          },
         });
-
-    const { selectProps: selectPropsCompanies } = useSelect({
-        resource: "companies",
-        optionLabel: "name",
-        pagination: {
-            mode: "off",
-        },
-        meta: {
-            fields: ["id", "name"],
-        },
-    });
-
-    const { selectProps: selectPropsUsers } = useSelect({
-        resource: "users",
-        optionLabel: "name",
-        pagination: {
-            mode: "off",
-        },
-        meta: {
-            fields: ["id", "name"],
-        },
-    });
-    const onSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        searchFormProps?.onFinish?.({
-            title: e.target.value ?? "",
-        });
+        setDocuments(response.data);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const debouncedOnChange = debounce(onSearch, 500);
+    fetchDocuments();
+  }, [searchTerm, selectedElasticIndex, topicId]); // Added topicId as a dependency
+
+  const handleElasticIndexChange = (value: string) => {
+    setSelectedElasticIndex(value);
+    setTopicId(value === "cnn" ? 3 : 0); // Update topicId based on index
+  };
+
+    const columns = [
+        {
+        title: "Title",
+        dataIndex: "title",
+        key: "title",
+        },
+        {
+        title: "Published Date",
+        dataIndex: "date",
+        key: "date",
+        render: (text: string | undefined) => text || "Date not available"
+        },
+        {
+        title: "URL",
+        dataIndex: "url",
+        key: "url",
+        render: (url: string) => <a href={url} target="_blank" rel="noopener noreferrer">Link</a>,
+        },
+    ];
+
+
 
     return (
         <div className="page-container">
-            <List
-                breadcrumb={false}
-                headerButtons={() => {
-                    return (
-                        <Space
-                            style={{
-                                marginTop: screens.xs ? "1.6rem" : undefined,
-                            }}
-                        >
-                            <Form {...searchFormProps} layout="inline">
-                                <Form.Item name="title" noStyle>
-                                    <Input
-                                        size="large"
-                                        prefix={
-                                            <SearchOutlined className="anticon tertiary" />
-                                        }
-                                        suffix={
-                                            <Spin
-                                                size="small"
-                                                spinning={
-                                                    tableQueryResult.isFetching
-                                                }
-                                            />
-                                        }
-                                        placeholder="Search by name"
-                                        onChange={debouncedOnChange}
-                                    />
-                                </Form.Item>
-                            </Form>
-                        </Space>
-                    );
-                }}
-                contentProps={{
-                    style: {
-                        marginTop: "28px",
-                    },
-                }}
-                title={
-                    <ListTitleButton buttonText="Add quote" toPath="quotes" />
-                }
-            >
-                <Table
-                    {...tableProps}
-                    pagination={{
-                        ...tableProps.pagination,
-                        showTotal: (total) => (
-                            <PaginationTotal
-                                total={total}
-                                entityName="quotes"
-                            />
-                        ),
-                    }}
-                    rowKey="id"
-                >
-                    <Table.Column
-                        dataIndex="title"
-                        title="Title"
-                        defaultFilteredValue={getDefaultFilter(
-                            "title",
-                            filters,
-                        )}
-                        filterDropdown={(props) => (
-                            <FilterDropdown {...props}>
-                                <Input placeholder="Search Name" />
-                            </FilterDropdown>
-                        )}
-                    />
-                    <Table.Column<Quote>
-                        dataIndex={["company", "id"]}
-                        title="Company"
-                        defaultFilteredValue={getDefaultFilter(
-                            "company.id",
-                            filters,
-                            "in",
-                        )}
-                        filterDropdown={(props) => (
-                            <FilterDropdown {...props}>
-                                <Select
-                                    placeholder="Search Company"
-                                    style={{ width: 220 }}
-                                    {...selectPropsCompanies}
-                                />
-                            </FilterDropdown>
-                        )}
-                        render={(_, record) => {
-                            return (
-                                <Space>
-                                    <CustomAvatar
-                                        shape="square"
-                                        name={record.company.name}
-                                        src={record.company.avatarUrl}
-                                    />
-                                    <Text style={{ whiteSpace: "nowrap" }}>
-                                        {record.company.name}
-                                    </Text>
-                                </Space>
-                            );
-                        }}
-                    />
-                    <Table.Column
-                        dataIndex="total"
-                        title="Total Amount"
-                        sorter
-                        render={(value) => {
-                            return (
-                                <Text
-                                    style={{
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {currencyNumber(value)}
-                                </Text>
-                            );
-                        }}
-                    />
-                    <Table.Column<Quote>
-                        dataIndex="status"
-                        title="Stage"
-                        defaultFilteredValue={getDefaultFilter(
-                            "status",
-                            filters,
-                            "in",
-                        )}
-                        filterDropdown={(props) => (
-                            <FilterDropdown {...props}>
-                                <Select
-                                    style={{ width: "200px" }}
-                                    mode="multiple"
-                                    placeholder="Select Stage"
-                                    options={statusOptions}
-                                ></Select>
-                            </FilterDropdown>
-                        )}
-                        render={(value) => {
-                            return <QuoteStatusTag status={value} />;
-                        }}
-                    />
-                    <Table.Column<Quote>
-                        dataIndex={["salesOwner", "id"]}
-                        title="Participants"
-                        filterDropdown={(props) => {
-                            return (
-                                <FilterDropdown {...props}>
-                                    <Select
-                                        style={{ width: "200px" }}
-                                        placeholder="Select Sales Owner"
-                                        {...selectPropsUsers}
-                                    />
-                                </FilterDropdown>
-                            );
-                        }}
-                        render={(_, record) => {
-                            return (
-                                <Participants
-                                    userOne={record.salesOwner}
-                                    userTwo={record.contact}
-                                />
-                            );
-                        }}
-                    />
-                    <Table.Column<Quote>
-                        dataIndex={"createdAt"}
-                        title="Created at"
-                        sorter
-                        defaultSortOrder={getDefaultSortOrder(
-                            "createdAt",
-                            sorters,
-                        )}
-                        render={(value) => {
-                            return <Text>{dayjs(value).fromNow()}</Text>;
-                        }}
-                    />
-                    <Table.Column<Quote>
-                        fixed="right"
-                        title="Actions"
-                        dataIndex="actions"
-                        render={(_, record) => {
-                            return (
-                                <Space>
-                                    <ShowButton
-                                        hideText
-                                        size="small"
-                                        recordItemId={record.id}
-                                        style={{
-                                            backgroundColor: "transparent",
-                                        }}
-                                    />
-                                    <EditButton
-                                        hideText
-                                        size="small"
-                                        recordItemId={record.id}
-                                        style={{
-                                            backgroundColor: "transparent",
-                                        }}
-                                    />
-                                    <DeleteButton
-                                        hideText
-                                        size="small"
-                                        recordItemId={record.id}
-                                        style={{
-                                            backgroundColor: "transparent",
-                                        }}
-                                    />
-                                </Space>
-                            );
-                        }}
-                    />
-                </Table>
-            </List>
-            {children}
+            <header style={{ 
+                padding: '20px', 
+                backgroundColor: '#4e73df',
+                color: 'white',
+                textAlign: 'center', 
+                marginBottom: '20px', 
+                borderRadius: '5px',
+                boxShadow: '0 4px 8px 0 rgba(0,0,0,0.2)'
+            }}>
+                <h1 style={{ 
+                    margin: 0, 
+                    fontWeight: 'normal',
+                    fontSize: '26px' // Larger font size for main title
+                }}>
+                    News Bias Analysis Dashboard
+                </h1>
+                <p style={{
+                    marginTop: '10px',
+                    fontSize: '16px' // Smaller font size for subtitle
+                }}>
+                    Analyzing CNN and FOX News Articles  (1 Oct 2023 - 31 Dec 2023)<br/>
+                    Focusing on the Israel-Palestine Conflict
+                </p>
+            </header>
+            <div>
+            
+            </div>
+        <Form layout="inline" style={{ marginBottom: 26 }}>
+            <Form.Item>
+            <Input
+                prefix={<SearchOutlined />}
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            </Form.Item>
+            <Form.Item>
+            <Button type="primary" onClick={() => setSearchTerm('')}>Clear</Button>
+            </Form.Item>
+        </Form>
+
+        <Select  defaultValue={selectedElasticIndex} style={{ width: 120 ,marginBottom: 26 }} onChange={handleElasticIndexChange}>
+                    <Select.Option value="cnn">cnn </Select.Option>
+                    <Select.Option value="fox">fox</Select.Option>
+                    {/* Add other options as needed */}
+                </Select>
+        <Table 
+        
+            dataSource={documents.map((doc, index) => ({ ...doc, key: index.toString() }))}
+            columns={columns}
+            loading={loading}
+            pagination={{ pageSize: 30 }}
+            
+            />
+        {children}
         </div>
     );
-};
+    };

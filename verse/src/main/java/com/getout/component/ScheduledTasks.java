@@ -1,18 +1,13 @@
 package com.getout.component;
 
 import com.getout.service.IndexMap;
-import com.getout.service.WordFrequencyBatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.getout.service.KeywordFrequencyService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -21,12 +16,12 @@ import java.util.concurrent.*;
 public class ScheduledTasks {
 
     @Autowired
-    private WordFrequencyBatch wordFrequencyBatch;
+    private KeywordFrequencyService wordFrequencyBatch;
 
     @Autowired
     private IndexMap indexMap;
 
-    public ScheduledTasks(WordFrequencyBatch wordFrequencyBatch) {
+    public ScheduledTasks(KeywordFrequencyService wordFrequencyBatch) {
         this.wordFrequencyBatch = wordFrequencyBatch;
     }
 ;

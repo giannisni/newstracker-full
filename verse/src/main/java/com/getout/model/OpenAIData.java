@@ -1,19 +1,15 @@
 package com.getout.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OpenAIData {
     private String openAI;
     private Integer count;
-
-    public OpenAIData(String openAI, Integer count) {
-        this.openAI = openAI;
-        this.count = count;
-    }
-
-    public String getOpenAI() {
-        return openAI;
-    }
-
-    public Integer getCount() {
-        return count;
-    }
 }

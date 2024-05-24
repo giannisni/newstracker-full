@@ -4,7 +4,7 @@ import com.getout.component.ScheduledTasks;
 import com.getout.model.DocumentData;
 import com.getout.model.OpenAIData;
 import com.getout.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,32 +17,15 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/news")
 @CrossOrigin(origins = "*")
-public class WordFrequencyController {
+@RequiredArgsConstructor
+public class NewsAnalysisController {
 
     private final KeywordService keywordService;
     private final OpenAIService openAIService;
     private final SentimentService sentimentService;
     private final DocumentService documentService;
-    private final TweetMetricsService tweetMetricsService;
-    private final WordFrequencyBatch wordFrequencyBatch;
+    private final KeywordFrequencyService keywordFrequencyService;
     private final ScheduledTasks scheduledTasks;
-
-    @Autowired
-    public WordFrequencyController(KeywordService keywordService,
-                                   OpenAIService openAIService,
-                                   SentimentService sentimentService,
-                                   DocumentService documentService,
-                                   TweetMetricsService tweetMetricsService,
-                                   WordFrequencyBatch wordFrequencyBatch,
-                                   ScheduledTasks scheduledTasks) {
-        this.keywordService = keywordService;
-        this.openAIService = openAIService;
-        this.sentimentService = sentimentService;
-        this.documentService = documentService;
-        this.tweetMetricsService = tweetMetricsService;
-        this.wordFrequencyBatch = wordFrequencyBatch;
-        this.scheduledTasks = scheduledTasks;
-    }
 
     @GetMapping("/wordcloud")
     public ResponseEntity<List<Map<String, Object>>> getWordCloudData(@RequestParam String indexName) {
@@ -86,7 +69,8 @@ public class WordFrequencyController {
     public ResponseEntity<Map<LocalDate, Integer>> getKeywordCounts(
             @RequestParam String keyword,
             @RequestParam String startDate,
-            @RequestParam String endDate, @RequestParam String index) {
+            @RequestParam String endDate,
+            @RequestParam String index) {
         try {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);

@@ -6,7 +6,7 @@ import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.getout.util.ElasticsearchProperties; // Import your ElasticsearchProperties class
+import com.getout.util.ElasticsearchProperties;
 import org.elasticsearch.client.RestClient;
 import org.apache.http.HttpHost;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
@@ -20,8 +20,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 
 @Configuration
 public class ElasticSearchConfig {
-
-
 
     private final ElasticsearchProperties elasticsearchProperties;
 
@@ -50,7 +48,8 @@ public class ElasticSearchConfig {
 
         RestClient restClient = RestClient.builder(
                         new HttpHost(elasticsearchProperties.getHost(), elasticsearchProperties.getPort(), elasticsearchProperties.getProtocol()))
-                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
+                .setHttpClientConfigCallback(httpClientBuilder ->
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
                 .build();
 
         ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());

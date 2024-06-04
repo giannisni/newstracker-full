@@ -3,11 +3,15 @@ package com.getout.component;
 import com.getout.service.IndexMap;
 import com.getout.service.KeywordFrequencyService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
 
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -25,55 +29,136 @@ public class ScheduledTasks {
         this.wordFrequencyBatch = wordFrequencyBatch;
     }
 ;
+    private void setupPythonEnvironment() {
+        try {
+            ProcessBuilder setupEnvBuilder = new ProcessBuilder("/bin/bash", "virtualenv.sh");
+            setupEnvBuilder.redirectErrorStream(true);
+            Process setupProcess = setupEnvBuilder.start();
 
-//    @Scheduled(cron = "0 05 18 * * *")
-//    public void scheduleKeywordCountTask() {
-////        logger.info("Starting scheduled task for keyword count...");
-//        // Use indexName and toIndex here
-//    }
-    public void scheduleKeywordCountTask( List<String> keywords,String fromIndex,String toIndex, String startDate, String endDate ) {
+            // Read output of the script
+            BufferedReader reader = new BufferedReader(new InputStreamReader(setupProcess.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
 
-
-        ExecutorService executorService = Executors.newFixedThreadPool(4);
-        List<Future<KeywordResult>> futures = new ArrayList<>();
-
-        for (String keyword : keywords) {
-            final String currentKeyword = keyword;
-            Callable<KeywordResult> task = () -> {
-                try {
-//                    System.out.println("Keyword " + keyword );
-                    Map<LocalDate, Integer> resultMap = wordFrequencyBatch.searchKeywordFrequency(fromIndex, toIndex, currentKeyword, startDate, endDate);
-
-                    return new KeywordResult(currentKeyword, resultMap);
-                } catch (Exception e) {
-//                    logger.error("Error processing keyword: " + currentKeyword, e);
-                    return new KeywordResult(currentKeyword, Collections.emptyMap());
-                }
-            };
-            futures.add(executorService.submit(task));
+            int exitCode = setupProcess.waitFor();
+            System.out.println("Environment setup exited with code " + exitCode);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
+    }
 
-        for (Future<KeywordResult> future : futures) {
+
+
+        private void runScript(String scriptPath, String startDate, String endDate, String domain,String index) {
             try {
-                KeywordResult result = future.get();
-                Map<LocalDate, Integer> resultMap = result.getFrequencyMap();
-                if (!resultMap.isEmpty()) {
+                ProcessBuilder processBuilder = new ProcessBuilder("python3", scriptPath, "--start_date", startDate, "--end_date", endDate, "--domain", domain,"--index", index);
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
 
-
-                    indexMap.indexSortedMap(fromIndex, new TreeMap<>(resultMap), result.getKeyword(), toIndex);
+                // Read output of the script
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("Python Output: " + line);
                 }
-//                logger.info("Result for keyword '" + result.getKeyword() + "': " + resultMap);
-            } catch (InterruptedException | ExecutionException e) {
-//                logger.error("Error retrieving keyword count result", e);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+
+                int exitCode = process.waitFor();
+                System.out.println("Script for domain " + domain + " exited with code " + exitCode);
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Error running script for domain " + domain);
+                e.printStackTrace();
             }
         }
 
-        executorService.shutdown();
-//        logger.info("Finished scheduled task for keyword count.");
-    }
-}
+
+
+        @Scheduled(cron = "0 00 20 * * *")
+        public void runPythonScripts() {
+            ExecutorService executor = Executors.newFixedThreadPool(5); // Adjust the number of threads based on your needs
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String today = LocalDate.now().format(formatter); // Gets today's date in the required format
+
+
+            // Define different domains and dates
+            String[][] parameters = {
+                    {today, today, "cnn.com", "cnn_articles_newone"},
+                    {today, today, "foxnews.com", "fox_articles_new"}
+                    // Add more as needed
+            };
+
+            String pythonScriptPath = "verse/src/main/java/com/getout/scripts/gdelt.py";
+            for (String[] param : parameters) {
+                String startDate = param[0];
+                String endDate = param[1];
+                String domain = param[2];
+                String index = param[3];
+
+
+                // Submit each script execution as a separate task to the executor
+                executor.submit(() -> runScript(pythonScriptPath, startDate, endDate, domain,index));
+            }
+
+            executor.shutdown(); // Shutdown the executor after submitting all tasks
+            try {
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS); // Optional: wait for all tasks to finish
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+            //    @Scheduled(cron = "0 05 18 * * *")
+        //    public void scheduleKeywordCountTask() {
+        ////        logger.info("Starting scheduled task for keyword count...");
+        //        // Use indexName and toIndex here
+        //    }
+        public void scheduleKeywordCountTask( List<String> keywords,String fromIndex,String toIndex, String startDate, String endDate ) {
+
+
+                ExecutorService executorService = Executors.newFixedThreadPool(4);
+                List<Future<KeywordResult>> futures = new ArrayList<>();
+
+                for (String keyword : keywords) {
+                    final String currentKeyword = keyword;
+                    Callable<KeywordResult> task = () -> {
+                        try {
+        //                    System.out.println("Keyword " + keyword );
+                            Map<LocalDate, Integer> resultMap = wordFrequencyBatch.searchKeywordFrequency(fromIndex, toIndex, currentKeyword, startDate, endDate);
+
+                            return new KeywordResult(currentKeyword, resultMap);
+                        } catch (Exception e) {
+        //                    logger.error("Error processing keyword: " + currentKeyword, e);
+                            return new KeywordResult(currentKeyword, Collections.emptyMap());
+                        }
+                    };
+                    futures.add(executorService.submit(task));
+                }
+
+                for (Future<KeywordResult> future : futures) {
+                    try {
+                        KeywordResult result = future.get();
+                        Map<LocalDate, Integer> resultMap = result.getFrequencyMap();
+                        if (!resultMap.isEmpty()) {
+
+
+                            indexMap.indexSortedMap(fromIndex, new TreeMap<>(resultMap), result.getKeyword(), toIndex);
+                        }
+        //                logger.info("Result for keyword '" + result.getKeyword() + "': " + resultMap);
+                    } catch (InterruptedException | ExecutionException e) {
+        //                logger.error("Error retrieving keyword count result", e);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                executorService.shutdown();
+        //        logger.info("Finished scheduled task for keyword count.");
+            }
+        }
 
 //    @Scheduled(cron = "0 53  21 * * *")
 //    public void scheduleTopicCountTask() {

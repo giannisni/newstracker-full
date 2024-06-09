@@ -74,41 +74,41 @@ public class ScheduledTasks {
 
 
 
-        @Scheduled(cron = "0 00 20 * * *")
-        public void runPythonScripts() {
-            ExecutorService executor = Executors.newFixedThreadPool(5); // Adjust the number of threads based on your needs
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            String today = LocalDate.now().format(formatter); // Gets today's date in the required format
-
-
-            // Define different domains and dates
-            String[][] parameters = {
-                    {today, today, "cnn.com", "cnn_articles_newone"},
-                    {today, today, "foxnews.com", "fox_articles_new"}
-                    // Add more as needed
-            };
-
-            String pythonScriptPath = "verse/src/main/java/com/getout/scripts/gdelt.py";
-            for (String[] param : parameters) {
-                String startDate = param[0];
-                String endDate = param[1];
-                String domain = param[2];
-                String index = param[3];
-
-
-                // Submit each script execution as a separate task to the executor
-                executor.submit(() -> runScript(pythonScriptPath, startDate, endDate, domain,index));
-            }
-
-            executor.shutdown(); // Shutdown the executor after submitting all tasks
-            try {
-                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS); // Optional: wait for all tasks to finish
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
+//        @Scheduled(cron = "0 00 20 * * *")
+//        public void runPythonScripts() {
+//            ExecutorService executor = Executors.newFixedThreadPool(5); // Adjust the number of threads based on your needs
+//
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//            String today = LocalDate.now().format(formatter); // Gets today's date in the required format
+//
+//
+//            // Define different domains and dates
+//            String[][] parameters = {
+//                    {today, today, "cnn.com", "cnn_articles_newone"},
+//                    {today, today, "foxnews.com", "fox_articles_new"}
+//                    // Add more as needed
+//            };
+//
+//            String pythonScriptPath = "verse/src/main/java/com/getout/scripts/gdelt.py";
+//            for (String[] param : parameters) {
+//                String startDate = param[0];
+//                String endDate = param[1];
+//                String domain = param[2];
+//                String index = param[3];
+//
+//
+//                // Submit each script execution as a separate task to the executor
+//                executor.submit(() -> runScript(pythonScriptPath, startDate, endDate, domain,index));
+//            }
+//
+//            executor.shutdown(); // Shutdown the executor after submitting all tasks
+//            try {
+//                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS); // Optional: wait for all tasks to finish
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
 
 
             //    @Scheduled(cron = "0 05 18 * * *")
@@ -143,7 +143,6 @@ public class ScheduledTasks {
                         KeywordResult result = future.get();
                         Map<LocalDate, Integer> resultMap = result.getFrequencyMap();
                         if (!resultMap.isEmpty()) {
-
 
                             indexMap.indexSortedMap(fromIndex, new TreeMap<>(resultMap), result.getKeyword(), toIndex);
                         }

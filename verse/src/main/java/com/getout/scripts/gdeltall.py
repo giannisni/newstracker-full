@@ -102,6 +102,7 @@ def fetch_articles_from_gdelt(start_datetime, end_datetime):
     else:
         print(f"Error fetching data. Status code: {response.status_code}")
 
+
 def fetch_articles_for_date_range(start_date, end_date):
     """Iterate over each day in the specified date range and fetch articles."""
     current_date = start_date

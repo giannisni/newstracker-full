@@ -1,3 +1,4 @@
+import argparse
 import requests
 import json
 from newspaper import Article
@@ -5,15 +6,18 @@ from elasticsearch import Elasticsearch
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import pytz
-import argparse
 
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Process some articles.')
 parser.add_argument('--start_date', type=str, help='Start date in YYYY-MM-DD format')
 parser.add_argument('--end_date', type=str, help='End date in YYYY-MM-DD format')
 parser.add_argument('--domain', type=str, default='cnn.com', help='Domain to query for articles')
-parser.add_argument('--index', type=str, default='', help='Index ')
-
+parser.add_argument('--index', type=str, default='', help='Index name')
+parser.add_argument('--es_host', type=str, default='localhost', help='Elasticsearch host')
+parser.add_argument('--es_port', type=int, default=9200, help='Elasticsearch port')
+parser.add_argument('--es_scheme', type=str, default='http', help='Elasticsearch scheme')
+parser.add_argument('--es_username', type=str, help='Elasticsearch username')
+parser.add_argument('--es_password', type=str, help='Elasticsearch password')
 
 args = parser.parse_args()
 
@@ -21,10 +25,13 @@ args = parser.parse_args()
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
 end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
 domain = args.domain
-index= args.index
-# Elasticsearch configuration
-es = Elasticsearch([{'host': "localhost", 'port': 9200, 'scheme': 'http'}])
+index = args.index
 
+# Elasticsearch configuration
+es = Elasticsearch(
+    [f"{args.es_scheme}://{args.es_host}:{args.es_port}"],
+    http_auth=(args.es_username, args.es_password)
+)
 
 def process_article(article_data):
     """Process an individual GDELT article data and extract relevant fields."""
@@ -102,7 +109,6 @@ def fetch_articles_from_gdelt(start_datetime, end_datetime):
     else:
         print(f"Error fetching data. Status code: {response.status_code}")
 
-
 def fetch_articles_for_date_range(start_date, end_date):
     """Iterate over each day in the specified date range and fetch articles."""
     current_date = start_date
@@ -111,9 +117,6 @@ def fetch_articles_for_date_range(start_date, end_date):
         end_datetime = (current_date + timedelta(days=1)).strftime("%Y%m%d%H%M%S")
         fetch_articles_from_gdelt(start_datetime, end_datetime)
         current_date += timedelta(days=1)
-
-# Define your start and end dates here
-
 
 # Run the function
 fetch_articles_for_date_range(start_date, end_date)

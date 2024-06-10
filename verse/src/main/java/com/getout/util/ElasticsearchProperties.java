@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 @NoArgsConstructor
 @Configuration
-@ConfigurationProperties(prefix = "elasticsearch")
+//@ConfigurationProperties(prefix = "elasticsearch")
 public class ElasticsearchProperties {
 
     private String host;

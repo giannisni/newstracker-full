@@ -3,6 +3,7 @@ package com.getout.component;
 import com.getout.service.IndexMap;
 import com.getout.service.KeywordFrequencyService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +52,7 @@ public class ScheduledTasks {
 
 
 
-        private void runScript(String scriptPath, String startDate, String endDate, String domain,String index) {
+    private void runScript(String scriptPath, String startDate, String endDate, String domain,String index) {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder("python3", scriptPath, "--start_date", startDate, "--end_date", endDate, "--domain", domain,"--index", index);
                 processBuilder.redirectErrorStream(true);
@@ -74,41 +75,65 @@ public class ScheduledTasks {
 
 
 
-//        @Scheduled(cron = "0 00 20 * * *")
-//        public void runPythonScripts() {
-//            ExecutorService executor = Executors.newFixedThreadPool(5); // Adjust the number of threads based on your needs
-//
-//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//            String today = LocalDate.now().format(formatter); // Gets today's date in the required format
-//
-//
-//            // Define different domains and dates
-//            String[][] parameters = {
-//                    {today, today, "cnn.com", "cnn_articles_newone"},
-//                    {today, today, "foxnews.com", "fox_articles_new"}
-//                    // Add more as needed
-//            };
-//
-//            String pythonScriptPath = "verse/src/main/java/com/getout/scripts/gdelt.py";
-//            for (String[] param : parameters) {
-//                String startDate = param[0];
-//                String endDate = param[1];
-//                String domain = param[2];
-//                String index = param[3];
-//
-//
-//                // Submit each script execution as a separate task to the executor
-//                executor.submit(() -> runScript(pythonScriptPath, startDate, endDate, domain,index));
-//            }
-//
-//            executor.shutdown(); // Shutdown the executor after submitting all tasks
-//            try {
-//                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS); // Optional: wait for all tasks to finish
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
+    @Value("${elasticsearch.host}")
+    private String esHost;
+
+    @Value("${elasticsearch.port}")
+    private int esPort;
+
+    @Value("${elasticsearch.username}")
+    private String esUsername;
+
+    @Value("${elasticsearch.password}")
+    private String esPassword;
+
+    @Value("${elasticsearch.protocol}")
+    private String esScheme;
+
+    @Scheduled(cron = "0 00 20 * * *")
+    public void runPythonScripts() {
+        ExecutorService executor = Executors.newFixedThreadPool(5); // Adjust the number of threads based on your needs
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String today = LocalDate.now().format(formatter); // Gets today's date in the required format
+
+        // Define different domains and dates
+        String[][] parameters = {
+                {today, today, "cnn.com", "cnn_articles_newone"},
+                {today, today, "foxnews.com", "fox_articles_new"}
+                // Add more as needed
+        };
+
+        String pythonScriptPath = "verse/src/main/java/com/getout/scripts/gdelt.py";
+        for (String[] param : parameters) {
+            String startDate = param[0];
+            String endDate = param[1];
+            String domain = param[2];
+            String index = param[3];
+
+            // Submit each script execution as a separate task to the executor
+            executor.submit(() -> {
+                try {
+                    String command = String.format(
+                            "python %s --start_date=%s --end_date=%s --domain=%s --index=%s --es_host=%s --es_port=%d --es_scheme=%s --es_username=%s --es_password=%s",
+                            pythonScriptPath, startDate, endDate, domain, index, esHost, esPort, esScheme, esUsername, esPassword
+                    );
+                    Process process = Runtime.getRuntime().exec(command);
+                    process.waitFor();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        executor.shutdown(); // Shutdown the executor after submitting all tasks
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS); // Optional: wait for all tasks to finish
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
             //    @Scheduled(cron = "0 05 18 * * *")
